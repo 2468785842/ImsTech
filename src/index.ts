@@ -1,4 +1,4 @@
-import { firefox, ElementHandle, Page, Locator } from 'playwright';
+import { chromium, ElementHandle, Page } from 'playwright';
 import { expect } from 'playwright/test';
 import 'dotenv/config';
 
@@ -25,13 +25,29 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
 
 (async () => {
     // Setup
-    const context = await firefox.launchPersistentContext('C:\\FireFoxCache', {
-        headless: false,
-        slowMo: 100,
-        bypassCSP: true
-        // args: ['--disable-blink-features=AutomationControlled'] //关闭自动控制特征
-    });
+    const context = await chromium.launchPersistentContext(
+        'C:\\ChromiumCache',
+        {
+            //facking... because chromuim not support h.264,so need replace,
+            executablePath: process.env._ChromeDev,
+            headless: false,
+            screen: {
+                width: 1920,
+                height: 1080
+            },
+            slowMo: 100,
+            bypassCSP: true,
+            args: [
+                '--disable-blink-features=AutomationControlled',
+                '--start-maximized'
+            ] //关闭自动控制特征
+        }
+    );
     let page = context.pages()[0];
+    // setInterval(() => {
+    //     //保持窗口始终聚焦
+    //     page.evaluate('window.focus();');
+    // }, 200);
     await page.goto(homeUrl);
     // 判断是否登录
     await page
@@ -70,6 +86,15 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
             }
             // 点击播放
             await page.locator('i.mvp-fonts.mvp-fonts-play').click();
+            // 静音mvp-fonts mvp-fonts-volume-on
+            const ctlVol = page.locator('button.mvp-volume-control-btn');
+            if (await ctlVol.locator('i.mvp-fonts-volume-on').isVisible()) {
+                await ctlVol.click();
+            }
+            await page.locator('.mvp-player-quality-menu').hover();
+            // 改变视频画质省流
+            await page.getByText('480p').click();
+            // 获取视频时长
             const mvpTimeDisplay = page.locator('div.mvp-time-display');
             // start duration / end duration
             // example: 23:11 / 36:11
@@ -178,6 +203,7 @@ async function getUnfinishActivities(
     return strs;
 }
 
+// 判断当前课程类型
 async function checkCurrentCourseItem(page: Page): Promise<CourseType> {
     // div.activity-content-bd.online-video-box 视频
     // div.activity-content-bd.page-box 电子教材
