@@ -5,13 +5,14 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "run": "tsc && node --env-file=.env dist/index.js"
+    "run": "tsc && node dist/index.js"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@playwright/browser-firefox": "^1.44.0",
     "@types/node": "^20.12.11",
+    "dotenv": "^16.4.5",
     "playwright": "^1.44.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"

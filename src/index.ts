@@ -1,5 +1,14 @@
-import { firefox, ElementHandle, Page } from 'playwright';
+import { firefox, ElementHandle, Page, Locator } from 'playwright';
 import { expect } from 'playwright/test';
+import 'dotenv/config';
+
+type CourseType =
+    | 'video'
+    | 'forum'
+    | 'page'
+    | 'liveStream'
+    | 'exam'
+    | 'unknown';
 
 interface CourseInfo {
     title: string;
@@ -13,12 +22,14 @@ const homeUrl = 'https://lms.ouchn.cn/user/index#/';
 const coursesUrl = 'https://lms.ouchn.cn/user/courses#/';
 const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
 const courseUrl = 'https://lms.ouchn.cn/course/';
+
 (async () => {
     // Setup
     const context = await firefox.launchPersistentContext('C:\\FireFoxCache', {
         headless: false,
-        slowMo: 450,
-        args: ['--disable-blink-features=AutomationControlled'] //关闭自动控制特征
+        slowMo: 100,
+        bypassCSP: true
+        // args: ['--disable-blink-features=AutomationControlled'] //关闭自动控制特征
     });
     let page = context.pages()[0];
     await page.goto(homeUrl);
@@ -47,6 +58,16 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
             // div.activity-content-bd.online-video-box 视频
             // div.activity-content-bd.page-box 电子教材
             // div.activity-content-bd.forum-box 课后讨论
+            const courType = await checkCurrentCourseItem(page);
+            console.log(title, ':', courType);
+            if (courType != 'video') {
+                // 回到课程选择页
+                await page.goBack({
+                    timeout: 0,
+                    waitUntil: 'load'
+                });
+                continue;
+            }
             // 点击播放
             await page.locator('i.mvp-fonts.mvp-fonts-play').click();
             const mvpTimeDisplay = page.locator('div.mvp-time-display');
@@ -55,16 +76,19 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
             const progress = (await mvpTimeDisplay.innerText()).split('/');
             //一直等待直到视频播放完毕
             await page.waitForFunction(
-                async (display) => {
-                    return (
-                        (await display.innerText()).split('/')[0] == progress[0]
-                    );
+                (endProgress) => {
+                    // 此为浏览器环境
+                    const display = document.querySelector(
+                        'div.mvp-time-display'
+                    ) as HTMLElement;
+                    const cur = display?.innerText.split('/')[0].trim();
+                    return cur == endProgress;
                 },
-                mvpTimeDisplay,
-                { timeout: 0 }
+                progress[1].trim(),
+                { timeout: 0, polling: 1000 }
             );
-            //回到课程选择页
-            await page.waitForURL(coursesUrl, {
+            // 回到课程选择页
+            await page.goBack({
                 timeout: 0,
                 waitUntil: 'load'
             });
@@ -75,8 +99,8 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
 })();
 
 async function login(page: Page) {
-    await page.getByPlaceholder('请输入登录名').fill(process.env.USERNAME!!);
-    await page.getByPlaceholder('请输入登录密码').fill(process.env.PASSWORD!!);
+    await page.getByPlaceholder('请输入登录名').fill(process.env._ACCOUNT!!);
+    await page.getByPlaceholder('请输入登录密码').fill(process.env._PASSWORD!!);
     await page.getByRole('button', { name: '登录' }).click();
     // 等待跳转
     await page.waitForURL(homeUrl, { timeout: 0, waitUntil: 'load' });
@@ -152,4 +176,45 @@ async function getUnfinishActivities(
             }
         });
     return strs;
+}
+
+async function checkCurrentCourseItem(page: Page): Promise<CourseType> {
+    // div.activity-content-bd.online-video-box 视频
+    // div.activity-content-bd.page-box 电子教材
+    // div.activity-content-bd.forum-box 课后讨论
+    // div.activity-content-bd.tencent-meeting-box 直播
+    // div.exam-basic-info 考试
+    await page.waitForSelector('div.activity-content-bd', {
+        state: 'attached'
+    });
+    const videoLocator = page.locator(
+        'div.activity-content-bd.online-video-box'
+    );
+    const pageLocator = page.locator('div.activity-content-bd.page-box');
+    const forumLocator = page.locator('div.activity-content-bd.forum-box');
+    const liveStreamLocator = page.locator(
+        'div.activity-content-bd.tencent-meeting-box'
+    );
+    const examLocator = page.locator('div.exam-basic-info');
+
+    const [
+        isVideoVisible,
+        isPageVisible,
+        isForumVisible,
+        isLiveStreamVisible,
+        isExamVisiable
+    ] = await Promise.all([
+        videoLocator.isVisible(),
+        pageLocator.isVisible(),
+        forumLocator.isVisible(),
+        liveStreamLocator.isVisible(),
+        examLocator.isVisible()
+    ]);
+
+    if (isVideoVisible) return 'video';
+    if (isPageVisible) return 'page';
+    if (isForumVisible) return 'forum';
+    if (isLiveStreamVisible) return 'liveStream';
+    if (isExamVisiable) return 'exam';
+    return 'unknown';
 }

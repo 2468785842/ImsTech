@@ -4,7 +4,6 @@
       "name": "Launch Program",
       "program": "${workspaceFolder}/dist/index.js",
       "request": "launch",
-      "args": ["--env-file=.env"],
       "skipFiles": ["<node_internals>/**"],
       "type": "node",
       "preLaunchTask": "tsc"
