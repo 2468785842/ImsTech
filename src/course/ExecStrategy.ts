@@ -92,7 +92,7 @@ async function videoStrategy(page: Page) {
                 'div.mvp-time-display'
             ) as HTMLElement;
             const cur = display?.innerText.split('/')[0].trim();
-            console.log('waiting for video play over:', cur, progress);
+            console.log('waiting for video play over:', cur, endProgress);
             return cur == endProgress;
         },
         progress[1].trim(),
