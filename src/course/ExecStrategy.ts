@@ -76,9 +76,13 @@ async function videoStrategy(page: Page) {
     if (await ctlVol.locator('i.mvp-fonts-volume-on').isVisible()) {
         await ctlVol.click();
     }
-    await page.locator('.mvp-player-quality-menu').hover();
-    // 改变视频画质省流
-    await page.getByText('480p').click();
+    try {
+        await page.locator('.mvp-player-quality-menu').hover();
+        // 改变视频画质省流
+        await page.getByText('480p').click();
+    } catch {
+        console.warn('no have quality menu', 'skip');
+    }
     // 获取视频时长
     const mvpTimeDisplay = page.locator('div.mvp-time-display');
     // start duration / end duration
@@ -108,7 +112,8 @@ async function checkCurrentCourseItem(page: Page): Promise<CourseType> {
     // div.activity-content-bd.tencent-meeting-box 直播
     // div.exam-basic-info 考试
     await page.waitForSelector('div.activity-content-bd', {
-        state: 'attached'
+        state: 'visible',
+        timeout: 100000
     });
     const videoLocator = page.locator(
         'div.activity-content-bd.online-video-box'
