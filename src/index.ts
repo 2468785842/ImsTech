@@ -1,14 +1,7 @@
 import { chromium, ElementHandle, Page } from 'playwright';
 import { expect } from 'playwright/test';
+import * as ExecStrategy from './course/ExecStrategy.js';
 import 'dotenv/config';
-
-type CourseType =
-    | 'video'
-    | 'forum'
-    | 'page'
-    | 'liveStream'
-    | 'exam'
-    | 'unknown';
 
 interface CourseInfo {
     title: string;
@@ -26,28 +19,21 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
 (async () => {
     // Setup
     const context = await chromium.launchPersistentContext(
-        'C:\\ChromiumCache',
+        process.env._USER_DATA!!,
         {
             //facking... because chromuim not support h.264,so need replace,
-            executablePath: process.env._ChromeDev,
+            executablePath: process.env._CHROME_DEV!!,
             headless: false,
-            screen: {
-                width: 1920,
-                height: 1080
-            },
+            viewport: null,
             slowMo: 100,
             bypassCSP: true,
             args: [
-                '--disable-blink-features=AutomationControlled',
-                '--start-maximized'
+                '--start-maximized',
+                '--disable-blink-features=AutomationControlled'
             ] //关闭自动控制特征
         }
     );
     let page = context.pages()[0];
-    // setInterval(() => {
-    //     //保持窗口始终聚焦
-    //     page.evaluate('window.focus();');
-    // }, 200);
     await page.goto(homeUrl);
     // 判断是否登录
     await page
@@ -57,7 +43,7 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
             await login(page);
         })
         .catch(() => {
-            console.log('is login');
+            console.log('is logined');
         });
 
     await page.getByRole('link', { name: '我的课程' }).click();
@@ -71,47 +57,9 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
                 timeout: 0,
                 waitUntil: 'load'
             });
-            // div.activity-content-bd.online-video-box 视频
-            // div.activity-content-bd.page-box 电子教材
-            // div.activity-content-bd.forum-box 课后讨论
-            const courType = await checkCurrentCourseItem(page);
+            const courType = await ExecStrategy.checkCurrentCourseItem(page);
             console.log(title, ':', courType);
-            if (courType != 'video') {
-                // 回到课程选择页
-                await page.goBack({
-                    timeout: 0,
-                    waitUntil: 'load'
-                });
-                continue;
-            }
-            // 点击播放
-            await page.locator('i.mvp-fonts.mvp-fonts-play').click();
-            // 静音mvp-fonts mvp-fonts-volume-on
-            const ctlVol = page.locator('button.mvp-volume-control-btn');
-            if (await ctlVol.locator('i.mvp-fonts-volume-on').isVisible()) {
-                await ctlVol.click();
-            }
-            await page.locator('.mvp-player-quality-menu').hover();
-            // 改变视频画质省流
-            await page.getByText('480p').click();
-            // 获取视频时长
-            const mvpTimeDisplay = page.locator('div.mvp-time-display');
-            // start duration / end duration
-            // example: 23:11 / 36:11
-            const progress = (await mvpTimeDisplay.innerText()).split('/');
-            //一直等待直到视频播放完毕
-            await page.waitForFunction(
-                (endProgress) => {
-                    // 此为浏览器环境
-                    const display = document.querySelector(
-                        'div.mvp-time-display'
-                    ) as HTMLElement;
-                    const cur = display?.innerText.split('/')[0].trim();
-                    return cur == endProgress;
-                },
-                progress[1].trim(),
-                { timeout: 0, polling: 1000 }
-            );
+            await ExecStrategy.getStrategy(courType)(page);
             // 回到课程选择页
             await page.goBack({
                 timeout: 0,
@@ -201,46 +149,4 @@ async function getUnfinishActivities(
             }
         });
     return strs;
-}
-
-// 判断当前课程类型
-async function checkCurrentCourseItem(page: Page): Promise<CourseType> {
-    // div.activity-content-bd.online-video-box 视频
-    // div.activity-content-bd.page-box 电子教材
-    // div.activity-content-bd.forum-box 课后讨论
-    // div.activity-content-bd.tencent-meeting-box 直播
-    // div.exam-basic-info 考试
-    await page.waitForSelector('div.activity-content-bd', {
-        state: 'attached'
-    });
-    const videoLocator = page.locator(
-        'div.activity-content-bd.online-video-box'
-    );
-    const pageLocator = page.locator('div.activity-content-bd.page-box');
-    const forumLocator = page.locator('div.activity-content-bd.forum-box');
-    const liveStreamLocator = page.locator(
-        'div.activity-content-bd.tencent-meeting-box'
-    );
-    const examLocator = page.locator('div.exam-basic-info');
-
-    const [
-        isVideoVisible,
-        isPageVisible,
-        isForumVisible,
-        isLiveStreamVisible,
-        isExamVisiable
-    ] = await Promise.all([
-        videoLocator.isVisible(),
-        pageLocator.isVisible(),
-        forumLocator.isVisible(),
-        liveStreamLocator.isVisible(),
-        examLocator.isVisible()
-    ]);
-
-    if (isVideoVisible) return 'video';
-    if (isPageVisible) return 'page';
-    if (isForumVisible) return 'forum';
-    if (isLiveStreamVisible) return 'liveStream';
-    if (isExamVisiable) return 'exam';
-    return 'unknown';
 }
