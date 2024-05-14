@@ -6,7 +6,8 @@
 - 下载 `chrome dev`, `nodejs`
 - 运行 `npm install`下载依赖
 
-#### 添加.env文件, 写入
+#### 配置
+- 添加.env文件, 写入
 ```properties
 _ACCOUNT="xxx" # 账号
 _PASSWORD="xxx" # 密码
@@ -30,4 +31,4 @@ npm run start
   - 当使用webkit时:
     - 无
   - 使用chromium
-    - 目前未发现为解决问题
+    - 目前未发现未解决问题
