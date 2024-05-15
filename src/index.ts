@@ -1,7 +1,7 @@
 import { chromium, ElementHandle, Page } from 'playwright';
-import { expect } from 'playwright/test';
 import * as ExecStrategy from './course/ExecStrategy.js';
 import 'dotenv/config';
+import { expect } from 'playwright/test';
 
 interface CourseInfo {
     title: string;
@@ -21,7 +21,7 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
     const context = await chromium.launchPersistentContext(
         process.env._USER_DATA!!,
         {
-            //facking... because chromuim not support h.264,so need replace,
+            //fuck... because chromuim not support h.264,so need replace,
             executablePath: process.env._CHROME_DEV!!,
             headless: false,
             viewport: null,
@@ -52,7 +52,7 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
     for (let item of listItems) {
         const activities = await getUnfinishActivities(page, item);
         for (let title of activities) {
-            await page.getByText(title).click();
+            await page.getByText(title).click({timeout: 7000});
             await page.waitForURL(RegExp(`^${courseUrl}.*`), {
                 timeout: 0,
                 waitUntil: 'load'
@@ -60,7 +60,7 @@ const courseUrl = 'https://lms.ouchn.cn/course/';
             const courType = await ExecStrategy.checkCurrentCourseItem(page);
             console.log(title, ':', courType);
             await ExecStrategy.getStrategy(courType)(page);
-            // 回到课程选择页
+            // 回到课程选择页 
             await page.goBack({
                 timeout: 0,
                 waitUntil: 'load'
@@ -114,7 +114,7 @@ async function getUnfinishActivities(
 ): Promise<string[]> {
     let strs: string[] = [];
     console.log('获取未完成的活动: ', coursesInfo.title);
-    await page.getByRole('link', { name: coursesInfo.title }).click();
+    await page.getByText(coursesInfo.title).click();
     await page.waitForURL(RegExp(`^${courseUrl}.*`));
     await page.waitForTimeout(100);
     await page.locator('input[type="checkbox"]').check();
@@ -138,11 +138,11 @@ async function getUnfinishActivities(
                 );
                 await Promise.all(
                     activities.map(async (activity: ElementHandle) => {
-                        const title = await activity.$(
+                        const title = await (await activity.$(
                             'div.activity-title a.title'
-                        );
-                        if (title) {
-                            strs.push(await title.innerText());
+                        ))?.innerText();
+                        if (title && title !="页面 | 导学" ) {
+                            strs.push(title);
                         }
                     })
                 );

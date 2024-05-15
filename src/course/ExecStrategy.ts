@@ -85,6 +85,7 @@ async function videoStrategy(page: Page) {
     }
     // 获取视频时长
     const mvpTimeDisplay = page.locator('div.mvp-time-display');
+    await mvpTimeDisplay.waitFor({ state: 'visible', timeout: 0 });
     // start duration / end duration
     // example: 23:11 / 36:11
     const progress = (await mvpTimeDisplay.innerText()).split('/');
