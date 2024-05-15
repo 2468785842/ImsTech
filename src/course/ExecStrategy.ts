@@ -56,6 +56,7 @@ async function examStrategy(page: Page) {
 }
 
 async function videoStrategy(page: Page) {
+
     while (true) {
         // 点击播放
         try {
@@ -88,7 +89,7 @@ async function videoStrategy(page: Page) {
     await mvpTimeDisplay.waitFor({ state: 'visible', timeout: 0 });
     // start duration / end duration
     // example: 23:11 / 36:11
-    const progress = (await mvpTimeDisplay.innerText()).split('/');
+    const progress = (await mvpTimeDisplay.textContent())!!.split('/');
     //一直等待直到视频播放完毕
     await page.waitForFunction(
         (endProgress) => {
@@ -96,7 +97,7 @@ async function videoStrategy(page: Page) {
             const display = document.querySelector(
                 'div.mvp-time-display'
             ) as HTMLElement;
-            const cur = display?.innerText.split('/')[0].trim();
+            const cur = display?.textContent?.split('/')[0].trim();
             console.log('waiting for video play over:', cur, endProgress);
             return cur == endProgress;
         },
