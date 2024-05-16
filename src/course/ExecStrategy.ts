@@ -60,7 +60,7 @@ async function videoStrategy(page: Page) {
     const display = page.locator("div.mvp-time-display");
     const pgs = (await display?.textContent())!!.split("/");
     console.log("check is over", pgs[0].trim(), pgs[1].trim());
-    if (pgs[0].trim() == pgs[1].trim() && pgs[1].trim() != '00:00') {
+    if (pgs[0].trim() == pgs[1].trim() && pgs[1].trim() != "00:00") {
         return;
     }
 
@@ -94,21 +94,22 @@ async function videoStrategy(page: Page) {
     // 获取视频时长
     const mvpTimeDisplay = page.locator("div.mvp-time-display");
     await mvpTimeDisplay.waitFor({ state: "visible", timeout: 0 });
-    // start duration / end duration
-    // example: 23:11 / 36:11
-    const progress = (await mvpTimeDisplay.textContent())!!.split("/");
     //一直等待直到视频播放完毕
     await page.waitForFunction(
-        (endProgress) => {
+        () => {
             // 此为浏览器环境
             const display = document.querySelector(
                 "div.mvp-time-display"
             ) as HTMLElement;
-            const cur = display?.textContent?.split("/")[0].trim();
-            console.log("waiting for video play over:", cur, endProgress);
-            return cur == endProgress;
+            // start duration / end duration
+            // example: 23:11 / 36:11
+            const progress = display?.textContent!!.split("/");
+            const cur = progress[0].trim();
+            const end = progress[1].trim();
+            console.log("waiting for video play over:", cur, end);
+            return cur == end;
         },
-        progress[1].trim(),
+        null,
         { timeout: 0, polling: 1000 }
     );
 }

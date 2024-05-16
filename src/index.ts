@@ -52,9 +52,12 @@ const courseUrl = "https://lms.ouchn.cn/course/";
     for (let item of listItems) {
         const activities = await getUnfinishActivities(page, item);
         for (let title of activities) {
-            await page
-                .getByText(title, { exact: true })
-                .click({ timeout: 7000 });
+            const t = page.getByText(title, { exact: true });
+            if ((await t.getAttribute("class"))!!.lastIndexOf("locked") != -1) {
+                console.log("is locked ", "skip");
+                continue;
+            }
+            t.click({ timeout: 7000 });
             await page.waitForURL(RegExp(`^${courseUrl}.*`), {
                 timeout: 0,
                 waitUntil: "load"
@@ -147,7 +150,7 @@ async function getUnfinishActivities(
                         const title = await (
                             await activity.$("div.activity-title a.title")
                         )?.innerText();
-                        if (title && !title.startsWith('页面')) {
+                        if (title && !title.startsWith("页面")) {
                             strs.push(title);
                         }
                     })
