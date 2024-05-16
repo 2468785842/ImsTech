@@ -147,7 +147,7 @@ async function getUnfinishActivities(
                         const title = await (
                             await activity.$("div.activity-title a.title")
                         )?.innerText();
-                        if (title && title != "页面 | 导学") {
+                        if (title && !title.startsWith('页面')) {
                             strs.push(title);
                         }
                     })
