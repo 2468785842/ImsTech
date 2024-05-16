@@ -91,9 +91,6 @@ async function videoStrategy(page: Page) {
     } catch {
         console.warn("no have quality menu", "skip");
     }
-    // 获取视频时长
-    const mvpTimeDisplay = page.locator("div.mvp-time-display");
-    await mvpTimeDisplay.waitFor({ state: "visible", timeout: 0 });
     //一直等待直到视频播放完毕
     await page.waitForFunction(
         () => {
