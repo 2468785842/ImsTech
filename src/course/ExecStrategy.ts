@@ -7,7 +7,7 @@ type CourseType =
     | "page"
     | "liveStream"
     | "exam"
-    | "unknown";
+    | "unknown"; // TODO : 调查问卷, 线上连接
 
 type StrategyFun = (page: Page) => Promise<void>;
 
@@ -60,7 +60,7 @@ async function videoStrategy(page: Page) {
     const display = page.locator("div.mvp-time-display");
     const pgs = (await display?.textContent())!!.split("/");
     console.log("check is over", pgs[0].trim(), pgs[0].trim());
-    if (pgs[0].trim() == pgs[0].trim()) {
+    if (pgs[0].trim() == pgs[0].trim() && pgs[0].trim() != '00:00') {
         return;
     }
 
