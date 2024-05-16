@@ -64,12 +64,27 @@ async function videoStrategy(page: Page) {
         return;
     }
 
+    // 静音mvp-fonts mvp-fonts-volume-on
+    const ctlVol = page.locator("button.mvp-volume-control-btn");
+    if (await ctlVol.locator("i.mvp-fonts-volume-on").isVisible()) {
+        await ctlVol.click();
+        console.log("volume off");
+    }
+    try {
+        await page.locator(".mvp-player-quality-menu").hover();
+        // 改变视频画质省流
+        await page.getByText("480p").click({ timeout: 1000 });
+        console.log("change quality to 480p");
+    } catch {
+        console.warn("no have quality menu", "skip");
+    }
     while (true) {
         // 点击播放
         try {
             const p = page.locator("i.mvp-fonts.mvp-fonts-play");
             await expect(p).toBeVisible({ timeout: 100000 });
             await p.click();
+            console.log("play");
         } catch (e) {
             //刷新页面 重试
             console.error(e);
@@ -78,18 +93,6 @@ async function videoStrategy(page: Page) {
             continue;
         }
         break;
-    }
-    // 静音mvp-fonts mvp-fonts-volume-on
-    const ctlVol = page.locator("button.mvp-volume-control-btn");
-    if (await ctlVol.locator("i.mvp-fonts-volume-on").isVisible()) {
-        await ctlVol.click();
-    }
-    try {
-        await page.locator(".mvp-player-quality-menu").hover();
-        // 改变视频画质省流
-        await page.getByText("480p").click();
-    } catch {
-        console.warn("no have quality menu", "skip");
     }
     //一直等待直到视频播放完毕
     await page.waitForFunction(

@@ -52,12 +52,12 @@ const courseUrl = "https://lms.ouchn.cn/course/";
     for (let item of listItems) {
         const activities = await getUnfinishActivities(page, item);
         for (let title of activities) {
-            const t = page.getByText(title, { exact: true });
+            const t = page.getByText(title, { exact: true }).first();
             if ((await t.getAttribute("class"))!!.lastIndexOf("locked") != -1) {
                 console.log("is locked ", "skip");
                 continue;
             }
-            t.click({ timeout: 7000 });
+            t.click({ timeout: 0 });
             await page.waitForURL(RegExp(`^${courseUrl}.*`), {
                 timeout: 0,
                 waitUntil: "load"
@@ -76,6 +76,7 @@ const courseUrl = "https://lms.ouchn.cn/course/";
             waitUntil: "domcontentloaded"
         });
     }
+    console.log("program end...");
     // Teardown
     await context.close();
 })();
@@ -135,6 +136,7 @@ async function getUnfinishActivities(
         console.log("没有??全部展开按钮,可能已经展开?");
     }
 
+    await page.waitForLoadState();
     //多个课程组
     await page
         .locator("div.learning-activities:not(.ng-hide)")
@@ -150,7 +152,7 @@ async function getUnfinishActivities(
                         const title = await (
                             await activity.$("div.activity-title a.title")
                         )?.innerText();
-                        if (title && !title.startsWith("页面")) {
+                        if (title) {
                             strs.push(title);
                         }
                     })
