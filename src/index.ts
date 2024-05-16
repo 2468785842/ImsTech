@@ -65,9 +65,13 @@ const courseUrl = "https://lms.ouchn.cn/course/";
             // 回到课程选择页
             await page.goBack({
                 timeout: 0,
-                waitUntil: "load"
+                waitUntil: "domcontentloaded"
             });
         }
+        await page.goBack({
+            timeout: 0,
+            waitUntil: "domcontentloaded"
+        });
     }
     // Teardown
     await context.close();
