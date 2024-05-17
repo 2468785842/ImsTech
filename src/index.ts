@@ -51,6 +51,7 @@ const courseUrl = "https://lms.ouchn.cn/course/";
     const listItems = await getCourses(page);
     for (let item of listItems) {
         const activities = await getUnfinishActivities(page, item);
+        console.log(activities);
         for (let title of activities) {
             page.waitForTimeout(500);
             const t = page.getByText(title, { exact: true }).first();
@@ -79,8 +80,8 @@ const courseUrl = "https://lms.ouchn.cn/course/";
                 timeout: 0,
                 waitUntil: "domcontentloaded"
             });
-            await page.reload({ timeout: 4000, waitUntil: "load" });
-            console.debug('go back to course page')
+            await page.reload({ timeout: 0, waitUntil: "domcontentloaded" });
+            console.debug("go back to course page");
         }
         await page.goBack({
             timeout: 0,
@@ -147,7 +148,8 @@ async function getUnfinishActivities(
         console.log("没有??全部展开按钮,可能已经展开?");
     }
 
-    await page.waitForLoadState();
+    // 也许有更高效的方法,逆向出加载函数然后监听?而不是等待3s
+    await page.waitForTimeout(3000);
     //多个课程组
     await page
         .locator("div.learning-activities:not(.ng-hide)")
@@ -162,7 +164,7 @@ async function getUnfinishActivities(
                     activities.map(async (activity: ElementHandle) => {
                         const title = await (
                             await activity.$("div.activity-title a.title")
-                        )?.innerText();
+                        )?.textContent();
                         if (title) {
                             strs.push(title);
                         }
