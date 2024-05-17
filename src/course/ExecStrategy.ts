@@ -58,7 +58,7 @@ async function examStrategy(page: Page) {
 async function videoStrategy(page: Page) {
     // check video play over?
     const display = page.locator("div.mvp-time-display");
-    const pgs = (await display?.textContent())!!.split("/");
+    const pgs = (await display?.textContent({ timeout: 3000 }))!!.split("/");
     console.log("check is over", pgs[0].trim(), pgs[1].trim());
     if (pgs[0].trim() == pgs[1].trim() && pgs[1].trim() != "00:00") {
         return;
@@ -78,22 +78,13 @@ async function videoStrategy(page: Page) {
     } catch {
         console.warn("no have quality menu", "skip");
     }
-    while (true) {
-        // 点击播放
-        try {
-            const p = page.locator("i.mvp-fonts.mvp-fonts-play");
-            await expect(p).toBeVisible({ timeout: 100000 });
-            await p.click();
-            console.log("play");
-        } catch (e) {
-            //刷新页面 重试
-            console.error(e);
-            console.warn("retry: load video failed", "reload page");
-            await page.reload();
-            continue;
-        }
-        break;
-    }
+    // 点击播放
+    // 点击太快会出bug.. so 等待500ms
+    page.waitForTimeout(500);
+    const p = page.locator("i.mvp-fonts.mvp-fonts-play");
+    await expect(p).toBeVisible({ timeout: 5000 });
+    await p.click();
+    console.log("play");
     //一直等待直到视频播放完毕
     await page.waitForFunction(
         () => {

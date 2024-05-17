@@ -52,9 +52,10 @@ const courseUrl = "https://lms.ouchn.cn/course/";
     for (let item of listItems) {
         const activities = await getUnfinishActivities(page, item);
         for (let title of activities) {
+            page.waitForTimeout(500);
             const t = page.getByText(title, { exact: true }).first();
             if ((await t.getAttribute("class"))!!.lastIndexOf("locked") != -1) {
-                console.log("is locked ", "skip");
+                console.log("is locked", "skip");
                 continue;
             }
             t.click({ timeout: 0 });
@@ -64,12 +65,22 @@ const courseUrl = "https://lms.ouchn.cn/course/";
             });
             const courType = await ExecStrategy.checkCurrentCourseItem(page);
             console.log(title, ":", courType);
-            await ExecStrategy.getStrategy(courType)(page);
+
+            for (let count = 5; count > -1; count--) {
+                try {
+                    await ExecStrategy.getStrategy(courType)(page);
+                    break;
+                } catch {
+                    console.log("exec strategy error: retry", count);
+                }
+            }
             // 回到课程选择页
             await page.goBack({
                 timeout: 0,
                 waitUntil: "domcontentloaded"
             });
+            await page.reload({ timeout: 4000, waitUntil: "load" });
+            console.debug('go back to course page')
         }
         await page.goBack({
             timeout: 0,
