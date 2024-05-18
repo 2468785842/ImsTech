@@ -119,25 +119,21 @@ async function videoStrategy(page: Page) {
 
 // 判断当前课程类型
 async function checkCurrentCourseItem(page: Page): Promise<CourseType> {
-    // div.activity-content-bd.online-video-box 视频
-    // div.activity-content-bd.page-box 电子教材
-    // div.activity-content-bd.forum-box 课后讨论
-    // div.activity-content-bd.tencent-meeting-box 直播
-    // div.exam-basic-info 考试
-    await page.waitForSelector("div.activity-content-bd", {
+    // .online-video-box 视频
+    // .page-box 电子教材
+    // .forum-box 课后讨论
+    // .tencent-meeting-box 直播
+    // .exam-basic-info 考试
+    // .exam-activity-box 专题测验
+    await page.waitForSelector("div.activity-content-box", {
         state: "visible",
-        timeout: 100000
+        timeout: 0
     });
-    const videoLocator = page.locator(
-        "div.activity-content-bd.online-video-box"
-    );
-    const pageLocator = page.locator("div.activity-content-bd.page-box");
-    const forumLocator = page.locator("div.activity-content-bd.forum-box");
-    const liveStreamLocator = page.locator(
-        "div.activity-content-bd.tencent-meeting-box"
-    );
+    const videoLocator = page.locator("div.online-video-box");
+    const pageLocator = page.locator("div.page-box");
+    const forumLocator = page.locator("div.forum-box");
+    const liveStreamLocator = page.locator("div.tencent-meeting-box");
     const examLocator = page.locator("div.exam-basic-info");
-
     const [
         isVideoVisible,
         isPageVisible,

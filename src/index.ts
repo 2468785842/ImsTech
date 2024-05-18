@@ -54,20 +54,18 @@ const courseUrl = "https://lms.ouchn.cn/course/";
         console.log(activities);
         for (let title of activities) {
             page.waitForTimeout(1000);
+            let t;
             try {
-                const t = page.getByText(title, { exact: true }).first();
-
-                if (
-                    (await t.getAttribute("class"))!!.lastIndexOf(
-                        "locked"
-                    ) != -1
-                ) {
-                    console.log("is locked", "skip");
-                    continue;
-                }
-                t.click({ timeout: 0 });
+                t = page.getByText(title, { exact: true }).first();
             } catch {
+                continue;
             }
+
+            if ((await t.getAttribute("class"))!!.lastIndexOf("locked") != -1) {
+                console.log("is locked", "skip");
+                continue;
+            }
+            t.click({ timeout: 0 });
             await page.waitForURL(RegExp(`^${courseUrl}.*`), {
                 timeout: 0,
                 waitUntil: "load"
