@@ -56,6 +56,15 @@ async function examStrategy(page: Page) {
 }
 
 async function videoStrategy(page: Page) {
+    const tryToShowControls = async () => {
+        const playControls = page.locator("div.mvp-replay-player-all-controls");
+        await playControls.evaluate((element) => {
+            element.classList.remove("mvp-replay-player-hidden-control");
+        });
+    };
+
+    await tryToShowControls();
+
     // check video play over?
     const display = page.locator("div.mvp-time-display");
     const pgs = (await display?.textContent({ timeout: 3000 }))!!.split("/");
@@ -64,12 +73,15 @@ async function videoStrategy(page: Page) {
         return;
     }
 
+    await tryToShowControls();
     // 静音mvp-fonts mvp-fonts-volume-on
     const ctlVol = page.locator("button.mvp-volume-control-btn");
     if (await ctlVol.locator("i.mvp-fonts-volume-on").isVisible()) {
         await ctlVol.click();
         console.log("volume off");
     }
+
+    await tryToShowControls();
     try {
         await page.locator(".mvp-player-quality-menu").hover();
         // 改变视频画质省流
@@ -78,10 +90,10 @@ async function videoStrategy(page: Page) {
     } catch {
         console.warn("no have quality menu", "skip");
     }
+
+    await tryToShowControls();
     // 点击播放
-    // 点击太快会出bug.. so 等待500ms
-    page.waitForTimeout(500);
-    const p = page.locator("i.mvp-fonts.mvp-fonts-play");
+    const p = page.locator(".mvp-toggle-play.mvp-first-btn-margin");
     await expect(p).toBeVisible({ timeout: 5000 });
     await p.click();
     console.log("play");
