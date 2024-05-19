@@ -68,7 +68,7 @@ const courseUrl = "https://lms.ouchn.cn/course/";
             t.click({ timeout: 0 });
             await page.waitForURL(RegExp(`^${courseUrl}.*`), {
                 timeout: 0,
-                waitUntil: "load"
+                waitUntil: "domcontentloaded"
             });
             const courType = await ExecStrategy.checkCurrentCourseItem(page);
             console.log(title, ":", courType);

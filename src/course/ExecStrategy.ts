@@ -100,6 +100,13 @@ async function videoStrategy(page: Page) {
     //一直等待直到视频播放完毕
     await page.waitForFunction(
         () => {
+            var timer: any; // 维护同一个timer
+            function debounce(fn: Function, delay: number) {
+                clearTimeout(timer);
+                timer = setTimeout(function () {
+                    fn();
+                }, delay);
+            }
             // 此为浏览器环境
             const display = document.querySelector(
                 "div.mvp-time-display"
@@ -109,6 +116,10 @@ async function videoStrategy(page: Page) {
             const progress = display?.textContent!!.split("/");
             const cur = progress[0].trim();
             const end = progress[1].trim();
+            if (cur == "00:00")
+                debounce(() => {
+                    throw "play video error";
+                }, 2000);
             console.log("waiting for video play over:", cur, end);
             return cur == end;
         },
