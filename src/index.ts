@@ -1,20 +1,12 @@
-import { chromium, ElementHandle, Page } from "playwright";
+import { chromium, Page } from "playwright";
+import * as Activity from "./Activity.js";
 import * as ExecStrategy from "./course/ExecStrategy.js";
+import * as Search from "./course/Search.js";
 import "dotenv/config";
-import { expect } from "playwright/test";
 
-interface CourseInfo {
-    title: string;
-    semester: string;
-    code: string;
-    startDate: string;
-    percent: string;
-}
-
-const homeUrl = "https://lms.ouchn.cn/user/index#/";
 const coursesUrl = "https://lms.ouchn.cn/user/courses#/";
+const homeUrl = "https://lms.ouchn.cn/user/index#/";
 const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
-const courseUrl = "https://lms.ouchn.cn/course/";
 
 (async () => {
     // Setup
@@ -48,37 +40,55 @@ const courseUrl = "https://lms.ouchn.cn/course/";
 
     await page.getByRole("link", { name: "我的课程" }).click();
     await page.waitForURL(coursesUrl, { timeout: 0, waitUntil: "load" });
-    const listItems = await getCourses(page);
+    const listItems = await Activity.getActivities(page);
     for (let item of listItems) {
-        const activities = await getUnfinishActivities(page, item);
-        console.log(activities);
-        for (let title of activities) {
+        console.log(item.title, item.percent);
+
+        let courses = await Search.getUncompletedCourses(page, item);
+        courses = courses.filter((course) => course.progress != "full");
+
+        let i = 0;
+
+        for (let course of courses) {
+            console.log(course.module,
+                course.title,
+                course.progress,
+                ":",
+                ++i,
+                "/",
+                courses.length
+            );
+
             page.waitForTimeout(1000);
             let t;
             try {
-                t = page.getByText(title, { exact: true }).first();
+                t = page.getByText(course.title, { exact: true }).first();
+
+                if (
+                    (await t.getAttribute("class"))!!.lastIndexOf("locked") !=
+                    -1
+                ) {
+                    console.log("is locked", "skip");
+                    continue;
+                }
+                t.click({ timeout: 0 });
             } catch {
                 continue;
             }
-
-            if ((await t.getAttribute("class"))!!.lastIndexOf("locked") != -1) {
-                console.log("is locked", "skip");
-                continue;
-            }
-            t.click({ timeout: 0 });
-            await page.waitForURL(RegExp(`^${courseUrl}.*`), {
+            await page.waitForURL(RegExp(`^${Search.courseUrl}.*`), {
                 timeout: 0,
                 waitUntil: "domcontentloaded"
             });
             const courType = await ExecStrategy.checkCurrentCourseItem(page);
-            console.log(title, ":", courType);
 
             for (let count = 5; count > -1; count--) {
                 try {
                     await ExecStrategy.getStrategy(courType)(page);
                     break;
-                } catch {
+                } catch (e) {
+                    console.error(e);
                     console.log("exec strategy error: retry", count);
+                    await page.reload({ timeout: 0 });
                 }
             }
             // 回到课程选择页
@@ -105,78 +115,4 @@ async function login(page: Page) {
     await page.getByRole("button", { name: "登录" }).click();
     // 等待跳转
     await page.waitForURL(homeUrl, { timeout: 0, waitUntil: "load" });
-}
-
-async function getCourses(page: Page): Promise<CourseInfo[]> {
-    const olSelector = await page.waitForSelector("ol.courses");
-    const liElements = await olSelector.$$("li");
-    return await Promise.all(
-        liElements.map(async (li: ElementHandle) => {
-            // 标题
-            const title = await (await li.$("div.course-title"))!!.innerText();
-            // 学期
-            const semester = await (await li.$(
-                "div.course-academic-year-semester"
-            ))!!.innerText();
-            // 课程代码
-            const code = await (await li.$(
-                'span[tipsy="course.course_code"]'
-            ))!!.innerText();
-            // 课程开始时间
-            const startDate = await (await li.$(
-                'span[ng-bind="course.start_date"]'
-            ))!!.innerText();
-            // 学习进度
-            const percent = await (await li.$(
-                "section.percent span[ng-bind=\"course.completeness + '%'\"]"
-            ))!!.innerText();
-
-            return { title, semester, code, startDate, percent };
-        })
-    );
-}
-
-async function getUnfinishActivities(
-    page: Page,
-    coursesInfo: CourseInfo
-): Promise<string[]> {
-    let strs: string[] = [];
-    console.log("获取未完成的活动: ", coursesInfo.title);
-    await page.getByText(coursesInfo.title).click();
-    await page.waitForURL(RegExp(`^${courseUrl}.*`));
-    await page.waitForTimeout(100);
-    await page.locator('input[type="checkbox"]').check();
-    try {
-        const expand = page.getByText("全部展开");
-        await expect(expand).toBeVisible({ timeout: 1000 });
-        expand.click();
-    } catch {
-        console.log("没有??全部展开按钮,可能已经展开?");
-    }
-
-    // 也许有更高效的方法,逆向出加载函数然后监听?而不是等待3s
-    await page.waitForTimeout(3000);
-    //多个课程组
-    await page
-        .locator("div.learning-activities:not(.ng-hide)")
-        .elementHandles()
-        .then(async (elements) => {
-            for (const element of elements) {
-                //课程
-                const activities = await element.$$(
-                    "div.learning-activity:not(.ng-hide)"
-                );
-                await Promise.all(
-                    activities.map(async (activity: ElementHandle) => {
-                        const title = await (
-                            await activity.$("div.activity-title a.title")
-                        )?.textContent();
-                        if (title) {
-                            strs.push(title);
-                        }
-                    })
-                );
-            }
-        });
-    return strs;
 }

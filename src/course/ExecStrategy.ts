@@ -7,7 +7,7 @@ type CourseType =
     | "page"
     | "liveStream"
     | "exam"
-    | "unknown"; // TODO : 调查问卷, 线上连接
+    | "unknown"; // TODO: 调查问卷, 线上连接
 
 type StrategyFun = (page: Page) => Promise<void>;
 
@@ -36,22 +36,22 @@ function getStrategy(courType: CourseType): StrategyFun {
 }
 
 async function forumStrategy(page: Page) {
-    //TODO
+    //TODO:
     console.warn("论坛任务", "skip");
 }
 
 async function pageStrategy(page: Page) {
-    //TODO
+    //TODO:
     console.log("查看文档");
 }
 
 async function liveStreamStrategy(page: Page) {
-    //TODO
+    //TODO:
     console.warn("直播任务", "skip");
 }
 
 async function examStrategy(page: Page) {
-    //TODO
+    //TODO:
     console.warn("考试任务", "skip");
 }
 
@@ -110,7 +110,8 @@ async function videoStrategy(page: Page) {
             const cur = progress[0].trim();
             const end = progress[1].trim();
 
-            if (Date.now() - date > 2000) throw "play video error";
+            if (Date.now() - date > 15000 && (cur == "00:00" || cur == ""))
+                throw "play video error";
             console.log("waiting for video play over:", cur, end);
             return cur == end;
         },
