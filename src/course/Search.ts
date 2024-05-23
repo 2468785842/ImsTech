@@ -7,6 +7,7 @@ type CourseProgress = "full" | "part" | "none";
 const courseUrl = "https://lms.ouchn.cn/course/";
 
 type CourseInfo = {
+    id:string;
     module: string;
     title: string;
     progress: CourseProgress;
@@ -36,59 +37,59 @@ async function getUncompletedCourses(
     await page.waitForTimeout(3000);
     const modules = await page.locator("div.module").all();
     for (const module of modules) {
+        const id = (await module.getAttribute("id"))!!;
         const moduleName = await module
             .locator("span.module-name")
             .textContent();
         //多个课程组
-        await module
+        const elements = await module
             .locator("div.learning-activities:not(.ng-hide)")
-            .elementHandles()
-            .then(async (elements) => {
-                for (const element of elements) {
-                    // 课程
-                    const activities = await element.$$(
-                        "div.learning-activity:not(.ng-hide)"
+            .elementHandles();
+        for (const element of elements) {
+            // 课程
+            const activities = await element.$$(
+                "div.learning-activity:not(.ng-hide)"
+            );
+            await Promise.all(
+                activities.map(async (activity: ElementHandle) => {
+                    let courseInfo: CourseInfo = {
+                        id,
+                        module: moduleName!!,
+                        title: "",
+                        progress: "none"
+                    };
+                    const complete = activity.$(
+                        "activity-completeness-bar div.completeness"
                     );
-                    await Promise.all(
-                        activities.map(async (activity: ElementHandle) => {
-                            let courseInfo: CourseInfo = {
-                                module: moduleName!!,
-                                title: "",
-                                progress: "none"
-                            };
-                            const complete = activity.$(
-                                "activity-completeness-bar div.completeness"
-                            );
-                            const progress = await (
-                                await complete
-                            )?.getAttribute("class");
-                            if (!progress) return;
-                            // check course progress
-                            for (let v of ["full", "part", "none"] as [
-                                "full",
-                                "part",
-                                "none"
-                            ]) {
-                                if (progress!!.lastIndexOf(v) != -1) {
-                                    courseInfo.progress = v;
-                                    break;
-                                }
-                            }
+                    const progress = await (
+                        await complete
+                    )?.getAttribute("class");
+                    if (!progress) return;
+                    // check course progress
+                    for (let v of ["full", "part", "none"] as [
+                        "full",
+                        "part",
+                        "none"
+                    ]) {
+                        if (progress!!.lastIndexOf(v) != -1) {
+                            courseInfo.progress = v;
+                            break;
+                        }
+                    }
 
-                            const title = await (
-                                await activity.$("div.activity-title a.title")
-                            )?.textContent();
-                            if (!title) {
-                                console.log(activity);
-                                throw "unexception error: course title is undefined";
-                            }
-                            courseInfo.title = title;
-
-                            courseInfos.push(courseInfo);
-                        })
+                    const titleElt = await activity.$(
+                        "div.activity-title a.title"
                     );
-                }
-            });
+                    const title = await titleElt?.textContent();
+                    if (!title) {
+                        console.log(activity);
+                        throw "unexception error: course title is undefined";
+                    }
+                    courseInfo.title = title;
+                    courseInfos.push(courseInfo);
+                })
+            );
+        }
     }
     return courseInfos;
 }

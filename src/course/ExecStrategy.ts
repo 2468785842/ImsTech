@@ -41,8 +41,33 @@ async function forumStrategy(page: Page) {
 }
 
 async function pageStrategy(page: Page) {
-    //TODO:
-    console.log("查看文档");
+    // 什么都不需要做...
+    // const rightScreen = page.locator("div.full-screen-mode-content");
+    // await rightScreen.evaluate((element) => {
+    //     element.scrollTo({
+    //         left: 0,
+    //         top: element.scrollHeight,
+    //         behavior: "smooth"
+    //     });
+    // });
+
+    // const iframeHtml = page
+    //     .frameLocator("#previewContentInIframe")
+    //     .locator("html");
+    // try {
+    //     await iframeHtml.waitFor({ state: "visible", timeout: 2000 });
+    // } catch {
+    //     console.warn("no have pdf?, skip");
+    //     return;
+    // }
+    // const scrollH = await iframeHtml.evaluate((element) => {
+    //     element.scrollTo({
+    //         left: 0,
+    //         top: element.scrollHeight,
+    //         behavior: "smooth"
+    //     });
+    //     return element.scrollHeight;
+    // });
 }
 
 async function liveStreamStrategy(page: Page) {

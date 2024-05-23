@@ -17,7 +17,7 @@ const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
             executablePath: process.env._CHROME_DEV!!,
             headless: false,
             viewport: null,
-            slowMo: 100,
+            slowMo: 50,
             bypassCSP: true,
             args: [
                 "--start-maximized",
@@ -50,7 +50,8 @@ const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
         let i = 0;
 
         for (let course of courses) {
-            console.log(course.module,
+            console.log(
+                course.module,
                 course.title,
                 course.progress,
                 ":",
@@ -59,11 +60,11 @@ const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
                 courses.length
             );
 
-            page.waitForTimeout(1000);
-            let t;
+            let t = page
+                .locator(`#${course.id}`)
+                .getByText(course.title, { exact: true })
+                .first();
             try {
-                t = page.getByText(course.title, { exact: true }).first();
-
                 if (
                     (await t.getAttribute("class"))!!.lastIndexOf("locked") !=
                     -1
@@ -71,10 +72,10 @@ const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
                     console.log("is locked", "skip");
                     continue;
                 }
-                t.click({ timeout: 0 });
-            } catch {
-                continue;
-            }
+            } catch {}
+
+            await t.click({ timeout: 0 });
+
             await page.waitForURL(RegExp(`^${Search.courseUrl}.*`), {
                 timeout: 0,
                 waitUntil: "domcontentloaded"
