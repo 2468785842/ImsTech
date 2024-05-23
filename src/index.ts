@@ -40,13 +40,13 @@ const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
 
     await page.getByRole("link", { name: "我的课程" }).click();
     await page.waitForURL(coursesUrl, { timeout: 0, waitUntil: "load" });
+
     const listItems = await Activity.getActivities(page);
     for (let item of listItems) {
         console.log(item.title, item.percent);
 
         let courses = await Search.getUncompletedCourses(page, item);
         courses = courses.filter((course) => course.progress != "full");
-
         let i = 0;
 
         for (let course of courses) {
@@ -54,11 +54,14 @@ const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
                 course.module,
                 course.title,
                 course.progress,
-                ":",
-                ++i,
-                "/",
-                courses.length
+                `: ${++i}/${courses.length}`
             );
+
+            const strategy = ExecStrategy.strategyTable[course.type];
+            if (!strategy) {
+                console.warn("not support ", course.type);
+                continue;
+            }
 
             let t = page
                 .locator(`#${course.id}`)
@@ -80,11 +83,12 @@ const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
                 timeout: 0,
                 waitUntil: "domcontentloaded"
             });
-            const courType = await ExecStrategy.checkCurrentCourseItem(page);
+
+            // const courType = await ExecStrategy.checkCourseType(page);
 
             for (let count = 5; count > -1; count--) {
                 try {
-                    await ExecStrategy.getStrategy(courType)(page);
+                    await strategy(page);
                     break;
                 } catch (e) {
                     console.error(e);
