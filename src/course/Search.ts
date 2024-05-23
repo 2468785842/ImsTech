@@ -40,8 +40,6 @@ async function getUncompletedCourses(
 ): Promise<CourseInfo[]> {
     let courseInfos: CourseInfo[] = [];
 
-    console.debug("获取未完成的活动: ", activityInfo.title);
-
     await page.getByText(activityInfo.title).click();
     await page.waitForURL(RegExp(`^${courseUrl}.*`));
     await page.waitForTimeout(100);
@@ -51,7 +49,7 @@ async function getUncompletedCourses(
         await expect(expand).toBeVisible({ timeout: 1000 });
         await expand.click();
     } catch {
-        console.warn("没有??全部展开按钮,可能已经展开?");
+        console.warn("没有全部展开按钮,可能已经展开?");
     }
 
     // 也许有更高效的方法,逆向出加载函数然后监听?而不是等待2s
@@ -74,7 +72,11 @@ async function getUncompletedCourses(
             await Promise.all(
                 activities.map(async (activity: Locator) => {
                     // something is finished, so is empty, we will skip
-                    if ("" == (await activity.innerHTML())) return;
+                    try {
+                        if ("" == (await activity.innerHTML())) return;
+                    } catch {
+                        return;
+                    }
                     let courseInfo: CourseInfo = {
                         id,
                         type: await checkActivityType(activity),
@@ -127,4 +129,4 @@ async function checkActivityType(activity: Locator): Promise<CourseType> {
     return "unknown";
 }
 
-export { getUncompletedCourses, courseUrl, CourseType };
+export { getUncompletedCourses, courseUrl, CourseType, CourseProgress };

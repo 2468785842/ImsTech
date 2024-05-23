@@ -88,7 +88,7 @@ const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
 
             for (let count = 5; count > -1; count--) {
                 try {
-                    await strategy(page);
+                    await strategy(page, course.progress);
                     break;
                 } catch (e) {
                     console.error(e);

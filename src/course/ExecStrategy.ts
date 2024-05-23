@@ -1,8 +1,8 @@
 import { Page } from "playwright";
 import { expect } from "playwright/test";
-import { CourseType } from "./Search";
+import { CourseProgress, CourseType } from "./Search";
 
-type StrategyFun = (page: Page) => Promise<void>;
+type StrategyFun = (page: Page, progress: CourseProgress) => Promise<void>;
 
 const strategyTable: Record<CourseType, StrategyFun | undefined> = {
     video: videoStrategy, // 视频处理策略
@@ -14,7 +14,9 @@ const strategyTable: Record<CourseType, StrategyFun | undefined> = {
     unknown: undefined
 };
 
-async function forumStrategy(page: Page) {
+async function forumStrategy(page: Page, progress: CourseProgress) {
+    // ...就算发帖还是完成一半的状态...可能是国开系统bug...我们直接跳过
+    if (progress == "part") return;
     // 直接复制别人的...
     const topic = page.locator(".forum-topic-detail").first();
     const title = await topic.locator(".topic-title").textContent();
@@ -28,13 +30,14 @@ async function forumStrategy(page: Page) {
     const contentInput = form.locator(".simditor-body>p");
     await titleInput.fill(title!!);
     await contentInput.fill(content!!);
+
     await page
         .locator("#add-topic-popup .form-buttons")
         .getByRole("button", { name: "保存" })
         .click();
 }
 
-async function pageStrategy(page: Page) {
+async function pageStrategy(page: Page, progress: CourseProgress) {
     // 什么都不需要做...
     // const rightScreen = page.locator("div.full-screen-mode-content");
     // await rightScreen.evaluate((element) => {
@@ -63,7 +66,7 @@ async function pageStrategy(page: Page) {
     // });
 }
 
-async function liveStreamStrategy(page: Page) {
+async function liveStreamStrategy(page: Page, progress: CourseProgress) {
     //TODO:
     console.warn("直播任务", "skip");
 }
@@ -132,7 +135,7 @@ async function videoStrategy(page: Page) {
         { timeout: 0, polling: 1000 }
     );
 }
-async function materialStrategy(page: Page) {
+async function materialStrategy(page: Page, progress: CourseProgress) {
     await page.waitForSelector("div.activity-material", { state: "visible" });
     const pdfs = await page.locator('.activity-material a:text("查看")').all();
     for (const pdf of pdfs) {
