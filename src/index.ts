@@ -2,11 +2,14 @@ import { chromium, Page } from "playwright";
 import * as Activity from "./Activity.js";
 import * as ExecStrategy from "./course/ExecStrategy.js";
 import * as Search from "./course/Search.js";
+import path from 'path';
 import "dotenv/config";
 
-const coursesUrl = "https://lms.ouchn.cn/user/courses#/";
-const homeUrl = "https://lms.ouchn.cn/user/index#/";
-const loginUrl = `https://iam.pt.ouchn.cn/am/UI/Login`;
+const loginUrl = path.join(process.env._LOGIN_URL!!,"am", "UI", "Login");
+
+const userUrl = path.join(process.env._HOME_URL!!, "user");
+const coursesUrl = path.join(userUrl, "courses#");
+const homeUrl = path.join(userUrl, "index#");
 
 (async () => {
     // Setup

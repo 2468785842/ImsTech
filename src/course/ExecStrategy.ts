@@ -173,7 +173,7 @@ async function checkCourseType(page: Page): Promise<CourseType> {
         isLiveStreamVisible,
         isExamVisiable,
         isMaterialVisble
-    ] = await Promise.all([
+    ] = await Promise.allSettled([
         videoLocator.isVisible(),
         pageLocator.isVisible(),
         forumLocator.isVisible(),

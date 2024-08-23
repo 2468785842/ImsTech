@@ -1,10 +1,11 @@
 import { Locator, Page } from "playwright";
 import { expect } from "playwright/test";
 import * as Activity from "../Activity.js";
+import path from "path"
 
 type CourseProgress = "full" | "part" | "none";
 
-const courseUrl = "https://lms.ouchn.cn/course/";
+const courseUrl = path.join(process.env._HOME_URL!!, "course");
 
 type CourseType =
     | "video"
