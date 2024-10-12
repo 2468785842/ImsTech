@@ -1,5 +1,5 @@
 ### 使用nodejs, playwright构建的国开自动刷课
-![./image.png]()
+![](./image.png)
 ---
 
 #### 准备
