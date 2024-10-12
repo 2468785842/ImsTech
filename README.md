@@ -3,8 +3,8 @@
 ---
 
 #### 准备
-- 下载 `chrome dev`, `nodejs`
-- 运行 `npm install`下载依赖
+- 下载 ![ChromeDev](https://www.google.com/intl/zh-CN/chrome/dev/), ![Node.js](https://nodejs.org/zh-cn)
+- 打开`cmd` 运行 `npm install` 命令下载依赖
 
 #### 配置
 - 添加.env文件, 写入
