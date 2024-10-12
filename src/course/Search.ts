@@ -1,11 +1,11 @@
 import { Locator, Page } from "playwright";
 import { expect } from "playwright/test";
 import * as Activity from "../Activity.js";
-import path from "path"
+import "dotenv/config";
 
 type CourseProgress = "full" | "part" | "none";
 
-const courseUrl = path.join(process.env._HOME_URL!!, "course");
+const courseUrl = `${process.env._HOME_URL!!}/course`;
 
 type CourseType =
     | "video"
@@ -88,7 +88,7 @@ async function getUncompletedCourses(
                     const complete = activity.locator(
                         "activity-completeness-bar div.completeness"
                     );
-                    const progress = await complete.getAttribute("class");
+                    const progress = await complete.getAttribute("class", { timeout: 20000 }).catch(_ => null);
                     if (!progress) return;
                     // check course progress
                     for (let v of [

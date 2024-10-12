@@ -1,22 +1,23 @@
 import { chromium, Page } from "playwright";
+import 'source-map-support/register.js';
+
 import * as Activity from "./Activity.js";
 import * as ExecStrategy from "./course/ExecStrategy.js";
 import * as Search from "./course/Search.js";
-import path from 'path';
 import "dotenv/config";
 
-const loginUrl = path.join(process.env._LOGIN_URL!!,"am", "UI", "Login");
+const loginUrl = `${process.env._LOGIN_URL!!}/am/UI/Login`
 
-const userUrl = path.join(process.env._HOME_URL!!, "user");
-const coursesUrl = path.join(userUrl, "courses#");
-const homeUrl = path.join(userUrl, "index#");
+const userUrl = `${process.env._HOME_URL!!}/user`;
+const coursesUrl = `${userUrl}/courses#/`;
+const homeUrl = `${userUrl}/index#/`;
 
 (async () => {
     // Setup
     const context = await chromium.launchPersistentContext(
         process.env._USER_DATA!!,
         {
-            //fuck... because chromuim not support h.264,so need replace,
+            // Fuck... because Chromuim not support h.264,so need replace for Chrome,
             executablePath: process.env._CHROME_DEV!!,
             headless: false,
             viewport: null,
@@ -32,7 +33,7 @@ const homeUrl = path.join(userUrl, "index#");
     await page.goto(homeUrl);
     // 判断是否登录
     await page
-        .waitForURL(RegExp(`^${loginUrl}.*`), { timeout: 2000 })
+        .waitForURL(RegExp(`^${loginUrl}.*`), { timeout: 3000 })
         .then(async () => {
             console.log("to login");
             await login(page);
@@ -42,7 +43,7 @@ const homeUrl = path.join(userUrl, "index#");
         });
 
     await page.getByRole("link", { name: "我的课程" }).click();
-    await page.waitForURL(coursesUrl, { timeout: 0, waitUntil: "load" });
+    await page.waitForURL(coursesUrl, { timeout: 0 });
 
     const listItems = await Activity.getActivities(page);
     for (let item of listItems) {
@@ -121,6 +122,6 @@ async function login(page: Page) {
     await page.getByPlaceholder("请输入登录名").fill(process.env._ACCOUNT!!);
     await page.getByPlaceholder("请输入登录密码").fill(process.env._PASSWORD!!);
     await page.getByRole("button", { name: "登录" }).click();
-    // 等待跳转
-    await page.waitForURL(homeUrl, { timeout: 0, waitUntil: "load" });
+    // 等待跳转, timeout 可能被父级 page option覆盖呢..., 在这里显式声明好了
+    await page.waitForURL(homeUrl, { timeout: 0 });
 }

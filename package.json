@@ -16,5 +16,8 @@
     "playwright": "^1.44.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "source-map-support": "^0.5.21"
   }
 }
