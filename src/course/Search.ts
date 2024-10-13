@@ -2,6 +2,7 @@ import { Locator, Page } from "playwright";
 import { expect } from "playwright/test";
 import * as Activity from "../Activity.js";
 import "dotenv/config";
+import { waitForSPALoaded } from '../utils.js';
 
 type CourseProgress = "full" | "part" | "none";
 
@@ -39,11 +40,13 @@ async function getUncompletedCourses(
     page: Page,
     activityInfo: Activity.ActivityInfo
 ): Promise<CourseInfo[]> {
+    console.log('正在获取未完成的课程...');
+
     let courseInfos: CourseInfo[] = [];
 
     await page.getByText(activityInfo.title).click();
     await page.waitForURL(RegExp(`^${courseUrl}.*`));
-    await page.waitForTimeout(100);
+    // await page.waitForTimeout(100);
     await page.locator('input[type="checkbox"]').setChecked(true);
     try {
         const expand = page.getByText("全部展开");
@@ -54,7 +57,10 @@ async function getUncompletedCourses(
     }
 
     // 也许有更高效的方法,逆向出加载函数然后监听?而不是等待2s
-    await page.waitForTimeout(2000);
+    // await page.waitForTimeout(2000);
+    // await page.waitForLoadState('networkidle')
+    await waitForSPALoaded(page);
+
     const modules = await page.locator("div.module").all();
     for (const module of modules) {
         const id = (await module.getAttribute("id"))!!;
@@ -72,7 +78,7 @@ async function getUncompletedCourses(
                 .all();
             await Promise.all(
                 activities.map(async (activity: Locator) => {
-                    // something is finished, so is empty, we will skip
+                    // some stuff is finished, so is empty, we will skip
                     try {
                         if ("" == (await activity.innerHTML())) return;
                     } catch {
@@ -88,8 +94,14 @@ async function getUncompletedCourses(
                     const complete = activity.locator(
                         "activity-completeness-bar div.completeness"
                     );
-                    const progress = await complete.getAttribute("class", { timeout: 20000 }).catch(_ => null);
-                    if (!progress) return;
+
+                    // 需要注意的是, 页面元素有些是动态加载的, 这里必须等足够长时间...
+                    // 但是我们通过判断 ngProgress 宽度, 现在不需要了等待很长时间了
+                    // 最多等1s
+                    let progress = await complete
+                        .getAttribute("class", {timeout: 1000 })
+                        .catch(() => "none");
+
                     // check course progress
                     for (let v of [
                         "full",
@@ -118,6 +130,7 @@ async function getUncompletedCourses(
     }
     return courseInfos;
 }
+
 async function checkActivityType(activity: Locator): Promise<CourseType> {
     const icon = activity.locator("div.activity-icon>i.font");
     for (const k in COURSE_ICON) {

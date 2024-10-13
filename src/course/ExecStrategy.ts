@@ -37,36 +37,43 @@ async function forumStrategy(page: Page, progress: CourseProgress) {
         .click();
 }
 
-async function pageStrategy(page: Page, progress: CourseProgress) {
-    // 什么都不需要做...
-    // const rightScreen = page.locator("div.full-screen-mode-content");
-    // await rightScreen.evaluate((element) => {
-    //     element.scrollTo({
-    //         left: 0,
-    //         top: element.scrollHeight,
-    //         behavior: "smooth"
-    //     });
-    // });
-    // const iframeHtml = page
-    //     .frameLocator("#previewContentInIframe")
-    //     .locator("html");
-    // try {
-    //     await iframeHtml.waitFor({ state: "visible", timeout: 2000 });
-    // } catch {
-    //     console.warn("no have pdf?, skip");
-    //     return;
-    // }
-    // const scrollH = await iframeHtml.evaluate((element) => {
-    //     element.scrollTo({
-    //         left: 0,
-    //         top: element.scrollHeight,
-    //         behavior: "smooth"
-    //     });
-    //     return element.scrollHeight;
-    // });
+async function pageStrategy(page: Page, _: CourseProgress) {
+    await page.waitForTimeout(200);
+    const rightScreen = page.locator("div.full-screen-mode-content");
+    let scrollH = await rightScreen.evaluate((element) => {
+        element.scrollTo({
+            left: 0,
+            top: element.scrollHeight,
+            behavior: "smooth"
+        });
+        return element.scrollHeight;
+    });
+
+    console.log(`scroll to ${scrollH}`)
+
+    const iframeHtml = page
+        .frameLocator("#previewContentInIframe")
+        .locator("html");
+    try {
+        await iframeHtml.waitFor({ state: "visible", timeout: 7000 });
+    } catch {
+        console.warn("not pdf or other? (can't find anything timeout)");
+        return;
+    }
+
+    scrollH = await iframeHtml.evaluate((element) => {
+        element.scrollTo({
+            left: 0,
+            top: element.scrollHeight,
+            behavior: "smooth"
+        });
+        return element.scrollHeight;
+    });
+
+    console.log(`scroll to ${scrollH}`)
 }
 
-async function liveStreamStrategy(page: Page, progress: CourseProgress) {
+async function liveStreamStrategy(_: Page, _1: CourseProgress) {
     //TODO:
     console.warn("直播任务", "skip");
 }
@@ -135,7 +142,7 @@ async function videoStrategy(page: Page) {
         { timeout: 0, polling: 1000 }
     );
 }
-async function materialStrategy(page: Page, progress: CourseProgress) {
+async function materialStrategy(page: Page, _: CourseProgress) {
     await page.waitForSelector("div.activity-material", { state: "visible" });
     const pdfs = await page.locator('.activity-material a:text("查看")').all();
     for (const pdf of pdfs) {
@@ -166,28 +173,12 @@ async function checkCourseType(page: Page): Promise<CourseType> {
     const examLocator = page.locator("div.exam-basic-info");
     const materialLocator = page.locator("div.material-box");
 
-    const [
-        isVideoVisible,
-        isPageVisible,
-        isForumVisible,
-        isLiveStreamVisible,
-        isExamVisiable,
-        isMaterialVisble
-    ] = await Promise.allSettled([
-        videoLocator.isVisible(),
-        pageLocator.isVisible(),
-        forumLocator.isVisible(),
-        liveStreamLocator.isVisible(),
-        examLocator.isVisible(),
-        materialLocator.isVisible()
-    ]);
-
-    if (isVideoVisible) return "video";
-    if (isPageVisible) return "page";
-    if (isForumVisible) return "forum";
-    if (isLiveStreamVisible) return "liveStream";
-    if (isExamVisiable) return "exam";
-    if (isMaterialVisble) return "material";
+    if (await videoLocator.isVisible()) return "video";
+    if (await pageLocator.isVisible()) return "page";
+    if (await forumLocator.isVisible()) return "forum";
+    if (await liveStreamLocator.isVisible()) return "liveStream";
+    if (await examLocator.isVisible()) return "exam";
+    if (await materialLocator.isVisible()) return "material";
     return "unknown";
 }
 

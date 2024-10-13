@@ -5,6 +5,7 @@ import * as Activity from "./Activity.js";
 import * as ExecStrategy from "./course/ExecStrategy.js";
 import * as Search from "./course/Search.js";
 import "dotenv/config";
+import { waitForSPALoaded } from './utils.js';
 
 const loginUrl = `${process.env._LOGIN_URL!!}/am/UI/Login`
 
@@ -71,11 +72,10 @@ const homeUrl = `${userUrl}/index#/`;
                 .locator(`#${course.id}`)
                 .getByText(course.title, { exact: true })
                 .first();
+
             try {
-                if (
-                    (await t.getAttribute("class"))!!.lastIndexOf("locked") !=
-                    -1
-                ) {
+                if ((await t.getAttribute("class"))!!
+                            .lastIndexOf("locked") != -1) {
                     console.log("is locked", "skip");
                     continue;
                 }
@@ -91,6 +91,7 @@ const homeUrl = `${userUrl}/index#/`;
             // const courType = await ExecStrategy.checkCourseType(page);
 
             for (let count = 5; count > -1; count--) {
+                await waitForSPALoaded(page);
                 try {
                     await strategy(page, course.progress);
                     break;
@@ -106,7 +107,7 @@ const homeUrl = `${userUrl}/index#/`;
                 waitUntil: "domcontentloaded"
             });
             await page.reload({ timeout: 0, waitUntil: "domcontentloaded" });
-            console.debug("go back to course page");
+            // console.debug("go back to course page");
         }
         await page.goBack({
             timeout: 0,
