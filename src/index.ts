@@ -45,8 +45,13 @@ const homeUrl = `${userUrl}/index#/`;
 
     await page.getByRole("link", { name: "我的课程" }).click();
     await page.waitForURL(coursesUrl, { timeout: 0 });
+    await waitForSPALoaded(page)
+    await page.waitForLoadState('networkidle')
 
     const listItems = await Activity.getActivities(page);
+
+    console.log('课程组数量: ', listItems.length);
+
     for (let item of listItems) {
         console.log(item.title, item.percent);
 

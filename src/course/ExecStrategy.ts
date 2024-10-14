@@ -1,6 +1,7 @@
 import { Page } from "playwright";
 import { expect } from "playwright/test";
 import { CourseProgress, CourseType } from "./Search";
+import { waitForSPALoaded } from '../utils.js';
 
 type StrategyFun = (page: Page, progress: CourseProgress) => Promise<void>;
 
@@ -51,13 +52,16 @@ async function pageStrategy(page: Page, _: CourseProgress) {
 
     console.log(`scroll to ${scrollH}`)
 
+    await waitForSPALoaded(page)
+    await page.waitForLoadState('networkidle')
+
     const iframeHtml = page
         .frameLocator("#previewContentInIframe")
         .locator("html");
     try {
         await iframeHtml.waitFor({ state: "visible", timeout: 7000 });
     } catch {
-        console.warn("not pdf or other? (can't find anything timeout)");
+        console.warn("not pdf or other? (can't find anything)");
         return;
     }
 
@@ -83,21 +87,26 @@ async function videoStrategy(page: Page) {
         const playControls = page.locator("div.mvp-replay-player-all-controls");
         await playControls.evaluate((element) => {
             element.classList.remove("mvp-replay-player-hidden-control");
-        });
+        }, {}, { timeout: 0 });
     };
+
+    await waitForSPALoaded(page);
+    await page.waitForLoadState('networkidle')
 
     await tryToShowControls();
 
     // check video play over?
     const display = page.locator("div.mvp-time-display");
-    const pgs = (await display?.textContent({ timeout: 3000 }))!!.split("/");
-    console.log("check is over", pgs[0].trim(), pgs[1].trim());
+    const pgs = (await display.textContent({ timeout: 1000 }))!!.split("/");
+
+    console.log("play progress: ", pgs[0].trim(), pgs[1].trim());
+
     if (pgs[0].trim() == pgs[1].trim() && pgs[1].trim() != "00:00") {
         return;
     }
 
     await tryToShowControls();
-    // 静音mvp-fonts mvp-fonts-volume-on
+    // 静音 mvp-fonts mvp-fonts-volume-on
     const ctlVol = page.locator("button.mvp-volume-control-btn");
     if (await ctlVol.locator("i.mvp-fonts-volume-on").isVisible()) {
         await ctlVol.click();
@@ -106,9 +115,9 @@ async function videoStrategy(page: Page) {
 
     await tryToShowControls();
     try {
-        await page.locator(".mvp-player-quality-menu").hover();
+        await page.locator(".mvp-player-quality-menu").hover({ timeout: 500 });
         // 改变视频画质省流
-        await page.getByText("480p").click({ timeout: 1000 });
+        await page.getByText("480p").click({ timeout: 500 });
         console.log("change quality to 480p");
     } catch {
         console.warn("no have quality menu", "skip");
@@ -117,7 +126,7 @@ async function videoStrategy(page: Page) {
     await tryToShowControls();
     // 点击播放
     const p = page.locator(".mvp-toggle-play.mvp-first-btn-margin");
-    await expect(p).toBeVisible({ timeout: 5000 });
+    await expect(p).toBeVisible({ timeout: 500 });
     await p.click();
     console.log("play");
     //一直等待直到视频播放完毕
@@ -139,9 +148,10 @@ async function videoStrategy(page: Page) {
             return cur == end;
         },
         Date.now(),
-        { timeout: 0, polling: 1000 }
+        { timeout: 0, polling: 500 }
     );
 }
+
 async function materialStrategy(page: Page, _: CourseProgress) {
     await page.waitForSelector("div.activity-material", { state: "visible" });
     const pdfs = await page.locator('.activity-material a:text("查看")').all();
@@ -152,7 +162,9 @@ async function materialStrategy(page: Page, _: CourseProgress) {
     }
 }
 
-// 判断当前课程类型
+/**
+ * 判断当前课程类型
+ */ 
 async function checkCourseType(page: Page): Promise<CourseType> {
     // .online-video-box 视频
     // .page-box 电子教材

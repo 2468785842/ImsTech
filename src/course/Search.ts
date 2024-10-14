@@ -50,7 +50,7 @@ async function getUncompletedCourses(
     await page.locator('input[type="checkbox"]').setChecked(true);
     try {
         const expand = page.getByText("全部展开");
-        await expect(expand).toBeVisible({ timeout: 1000 });
+        await expect(expand).toBeVisible({ timeout: 500 });
         await expand.click();
     } catch {
         console.warn("没有全部展开按钮,可能已经展开?");
