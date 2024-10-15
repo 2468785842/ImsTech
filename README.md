@@ -4,7 +4,7 @@
 #### 搞快了会被检测异常行为, 需要等待一个小时
 
 ![image](https://github.com/user-attachments/assets/f4dc8d3c-af98-4520-96fc-f4dc16ef73d0)
-```
+```javascript
 // 修改index.ts中的slowMo弄慢点, 自己看着弄吧
 // Setup
 const context = await chromium.launchPersistentContext(
