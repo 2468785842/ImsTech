@@ -22,7 +22,7 @@ const context = await chromium.launchPersistentContext(
         ] //关闭自动控制特征
     }
 );
-
+```
 ---
 
 #### 准备
