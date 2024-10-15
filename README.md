@@ -3,7 +3,7 @@
 ---
 
 #### 准备
-- 下载 [ChromeDev](https://www.google.com/intl/zh-CN/chrome/dev/), [Node.js](https://nodejs.org/zh-cn)
+- 下载 [ChromeDev](https://www.google.com/intl/zh-CN/chrome/dev/)(如果你自己有Chrome不需要), [Node.js](https://nodejs.org/zh-cn)
 - 打开`cmd` 运行 `npm install` 命令下载依赖
 
 #### 配置
@@ -14,8 +14,8 @@ _HOME_URL="https://lms.ouchn.cn"
 
 _ACCOUNT="xxx" # 账号
 _PASSWORD="xxx" # 密码
-_CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # chrome dev路径
-_USER_DATA="C:\ChromiumCache" # 缓存
+_CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # chrome dev路径, 或者你自己的Chrome安装目录
+_USER_DATA="C:\ChromiumCache" # 缓存, 自己创建的文件夹, 用来存缓存文件Cookie的, 这样不用每次启动都登陆
 ```
 
 #### 运行
