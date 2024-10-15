@@ -3,30 +3,11 @@ import { expect } from "playwright/test";
 import * as Activity from "../Activity.js";
 import "dotenv/config";
 import { waitForSPALoaded } from '../utils.js';
+import { CourseType, COURSE_TYPE } from './ExecStrategy.js';
 
 type CourseProgress = "full" | "part" | "none";
 
 const courseUrl = `${process.env._HOME_URL!!}/course`;
-
-type CourseType =
-    | "video"
-    | "forum"
-    | "page"
-    | "liveStream"
-    | "exam"
-    | "material"
-    | "unknown"; // TODO: 调查问卷, 线上连接
-
-// 可以通过icon获取课程类型,而不是等到跳转课程页面获取, 加快速度
-const COURSE_ICON: Record<string, CourseType> = {
-    "font-syllabus-online-video": "video",
-    "font-syllabus-forum": "forum",
-    "font-syllabus-page": "page",
-    "font-syllabus-tencent-meeting": "liveStream",
-    "font-syllabus-exam": "exam",
-    "font-syllabus-material": "material",
-    unknown: "unknown"
-};
 
 type CourseInfo = {
     id: string;
@@ -133,14 +114,15 @@ async function getUncompletedCourses(
 
 async function checkActivityType(activity: Locator): Promise<CourseType> {
     const icon = activity.locator("div.activity-icon>i.font");
-    for (const k in COURSE_ICON) {
-        const cls = await icon.getAttribute("class");
-        if (!cls) break;
-        if (cls.lastIndexOf(k) != -1) {
-            return COURSE_ICON[k];
-        }
+    const cls = await icon.getAttribute("class");
+    const prefix = 'font-syllabus-';
+    if(cls) {
+      const fStart = cls.indexOf(prefix);
+      const front = cls.substring(fStart);
+      const courseType = front.substring(prefix.length);
+      return (courseType in COURSE_TYPE ? courseType : 'unknown') as CourseType;
     }
-    return "unknown";
+    return 'unknown';
 }
 
 export { getUncompletedCourses, courseUrl, CourseType, CourseProgress };

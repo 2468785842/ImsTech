@@ -1,18 +1,80 @@
 import { Page } from "playwright";
 import { expect } from "playwright/test";
-import { CourseProgress, CourseType } from "./Search";
+import { CourseProgress } from "./Search";
 import { waitForSPALoaded } from '../utils.js';
 
-type StrategyFun = (page: Page, progress: CourseProgress) => Promise<void>;
+type StrategyFunc = (page: Page, progress: CourseProgress) => Promise<void>;
 
-const strategyTable: Record<CourseType, StrategyFun | undefined> = {
-    video: videoStrategy, // 视频处理策略
-    forum: forumStrategy, // 论坛处理策略
-    page: pageStrategy, // pdf页处理策略
-    liveStream: liveStreamStrategy, // 直播处理策略
-    material: materialStrategy, // 参考资料处理策略
-    exam: undefined,
-    unknown: undefined
+const COURSE_TYPE = {
+  'web_link': '线上链接',
+  'material': '参考资料',
+  'homework': '作业',
+  'forum': '讨论',
+  'online_video': '音视频教材',
+  'slide': '微课',
+  'lesson': '录播教材',
+  'lesson_replay': '教室录播',
+  'exam': '测试',
+  'chatroom': 'iSlide 直播',
+  'classroom': '随堂测试',
+  'questionnaire': '调查问卷',
+  'page': '页面',
+  'scorm': '第三方教材',
+  'interaction': '互动教材',
+  'feedback': '教学反馈',
+  'virtual_classroom': 'Connect 直播',
+  'zoom': 'Zoom 直播',
+  'microsoft_teams_meeting': 'Teams 直播',
+  'webex_meeting': 'Webex 直播',
+  'welink': 'Welink',
+  'tencent_meeting': '课堂直播',
+  'classin': 'ClassIn 直播',
+  'live_record': '直播',
+  'select_student': '选人',
+  'race_answer': '抢答',
+  'number_rollcall': '数字点名',
+  'qr_rollcall': '二维码点名',
+  'dingtalk_meeting': '钉钉会议',
+  'virtual_experiment': '虚拟仿真实验',
+  'mix_task': '复合任务',
+  'unknown': '未知'
+};
+
+type CourseType = keyof typeof COURSE_TYPE;
+
+const strategyTable: Partial<Record<CourseType, StrategyFunc>> = {
+  online_video: onlineVideoStrategy, // 视频处理策略
+  forum: forumStrategy, // 论坛处理策略
+  page: pageStrategy, // pdf页处理策略
+  tencent_meeting: tencentMeetingStrategy, // 直播处理策略
+  material: materialStrategy, // 参考资料处理策略
+  // exam: undefined,
+  // unknown: undefined,
+  // web_link: undefined,
+  // homework: undefined,
+  // slide: undefined,
+  // lesson: undefined,
+  // lesson_replay: undefined,
+  // chatroom: undefined,
+  // classroom: undefined,
+  // questionnaire: undefined,
+  // scorm: undefined,
+  // interaction: undefined,
+  // feedback: undefined,
+  // virtual_classroom: undefined,
+  // zoom: undefined,
+  // microsoft_teams_meeting: undefined,
+  // webex_meeting: undefined,
+  // welink: undefined,
+  // classin: undefined,
+  // live_record: undefined,
+  // select_student: undefined,
+  // race_answer: undefined,
+  // number_rollcall: undefined,
+  // qr_rollcall: undefined,
+  // dingtalk_meeting: undefined,
+  // virtual_experiment: undefined,
+  // mix_task: undefined
 };
 
 async function forumStrategy(page: Page, progress: CourseProgress) {
@@ -77,12 +139,12 @@ async function pageStrategy(page: Page, _: CourseProgress) {
     console.log(`scroll to ${scrollH}`)
 }
 
-async function liveStreamStrategy(_: Page, _1: CourseProgress) {
+async function tencentMeetingStrategy(_: Page, _1: CourseProgress) {
     //TODO:
     console.warn("直播任务", "skip");
 }
 
-async function videoStrategy(page: Page) {
+async function onlineVideoStrategy(page: Page) {
     const tryToShowControls = async () => {
         const playControls = page.locator("div.mvp-replay-player-all-controls");
         await playControls.evaluate((element) => {
@@ -144,7 +206,7 @@ async function videoStrategy(page: Page) {
 
             if (Date.now() - date > 15000 && (cur == "00:00" || cur == ""))
                 throw "play video error";
-            console.log("waiting for video play over:", cur, end);
+            // console.log("waiting for video play over:", cur, end);
             return cur == end;
         },
         Date.now(),
@@ -162,36 +224,9 @@ async function materialStrategy(page: Page, _: CourseProgress) {
     }
 }
 
-/**
- * 判断当前课程类型
- */ 
-async function checkCourseType(page: Page): Promise<CourseType> {
-    // .online-video-box 视频
-    // .page-box 电子教材
-    // .forum-box 课后讨论
-    // .tencent-meeting-box 直播
-    // .exam-basic-info 考试
-    // .exam-activity-box 专题测验
-    // .material-box 考核说明
-    await page.waitForSelector("div.activity-content-box", {
-        state: "visible",
-        timeout: 0
-    });
-
-    const videoLocator = page.locator("div.online-video-box");
-    const pageLocator = page.locator("div.page-box");
-    const forumLocator = page.locator("div.forum-box");
-    const liveStreamLocator = page.locator("div.tencent-meeting-box");
-    const examLocator = page.locator("div.exam-basic-info");
-    const materialLocator = page.locator("div.material-box");
-
-    if (await videoLocator.isVisible()) return "video";
-    if (await pageLocator.isVisible()) return "page";
-    if (await forumLocator.isVisible()) return "forum";
-    if (await liveStreamLocator.isVisible()) return "liveStream";
-    if (await examLocator.isVisible()) return "exam";
-    if (await materialLocator.isVisible()) return "material";
-    return "unknown";
-}
-
-export { checkCourseType, CourseType, StrategyFun, strategyTable };
+export { 
+  StrategyFunc,
+  strategyTable,
+  CourseType,
+  COURSE_TYPE,
+};

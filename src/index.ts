@@ -10,7 +10,6 @@ import { waitForSPALoaded } from './utils.js';
 const loginUrl = `${process.env._LOGIN_URL!!}/am/UI/Login`
 
 const userUrl = `${process.env._HOME_URL!!}/user`;
-const coursesUrl = `${userUrl}/courses#/`;
 const homeUrl = `${userUrl}/index#/`;
 
 (async () => {
@@ -44,7 +43,6 @@ const homeUrl = `${userUrl}/index#/`;
         });
 
     await page.getByRole("link", { name: "我的课程" }).click();
-    await page.waitForURL(coursesUrl, { timeout: 0 });
     await waitForSPALoaded(page)
     await page.waitForLoadState('networkidle')
 
@@ -69,7 +67,7 @@ const homeUrl = `${userUrl}/index#/`;
 
             const strategy = ExecStrategy.strategyTable[course.type];
             if (!strategy) {
-                console.warn("not support ", course.type);
+                console.warn("\n不支持的课程类型:", ExecStrategy.COURSE_TYPE[course.type], '\n');
                 continue;
             }
 
@@ -79,21 +77,25 @@ const homeUrl = `${userUrl}/index#/`;
                 .first();
 
             try {
-                if ((await t.getAttribute("class"))!!
-                            .lastIndexOf("locked") != -1) {
-                    console.log("is locked", "skip");
+                if ((await t.getAttribute('class',{timeout: 100}))!!
+                            .lastIndexOf('.locked') != -1) {
+                    console.log("课程锁定", "跳过");
                     continue;
                 }
+
+                if (await t.locator('xpath=../*[contains(@class, "upcoming")]').isVisible()) {
+                    console.log('课程未开始', "跳过");
+                    continue;
+                }
+
             } catch {}
 
             await t.click({ timeout: 0 });
 
             await page.waitForURL(RegExp(`^${Search.courseUrl}.*`), {
-                timeout: 0,
+                timeout: 3000,
                 waitUntil: "domcontentloaded"
             });
-
-            // const courType = await ExecStrategy.checkCourseType(page);
 
             for (let count = 5; count > -1; count--) {
                 await waitForSPALoaded(page);
@@ -102,10 +104,11 @@ const homeUrl = `${userUrl}/index#/`;
                     break;
                 } catch (e) {
                     console.error(e);
-                    console.log("exec strategy error: retry", count);
-                    await page.reload({ timeout: 0 });
+                    console.log("exec strategy failed: retry", count);
+                    await page.reload({ timeout: 3000 });
                 }
             }
+
             // 回到课程选择页
             await page.goBack({
                 timeout: 0,

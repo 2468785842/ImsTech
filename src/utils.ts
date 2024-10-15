@@ -11,10 +11,9 @@ import { Page } from 'playwright';
  * ```
  * @param page 当前页面
  * 
- * @returns 异步对象, playwright包装的boolean对象, 通常无作用
  */
-export function waitForSPALoaded(page: Page) {
-    return page.waitForFunction(() => {
+export async function waitForSPALoaded(page: Page) {
+    await page.waitForFunction(() => {
         const progressBar: HTMLElement | null = document.querySelector('#ngProgress');
         return progressBar && progressBar.style.width === '0%';  // 判断进度是否完成
     });
