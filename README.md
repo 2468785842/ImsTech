@@ -1,5 +1,26 @@
-### 使用nodejs, playwright构建的国开自动刷课
+![image](https://github.com/user-attachments/assets/f4dc8d3c-af98-4520-96fc-f4dc16ef73d0)### 使用nodejs, playwright构建的国开自动刷课
+#### 搞快了会限制访问
 ![](./image.png)
+
+```
+// 修改index.ts中的slowMo弄慢点, 自己看着弄吧
+// Setup
+const context = await chromium.launchPersistentContext(
+    process.env._USER_DATA!!,
+    {
+        // Fuck... because Chromuim not support h.264,so need replace for Chrome,
+        executablePath: process.env._CHROME_DEV!!,
+        headless: false,
+        viewport: null,
+        slowMo: 1000, // 搞太快会限制访问, 
+        bypassCSP: true,
+        args: [
+            "--start-maximized",
+            "--disable-blink-features=AutomationControlled"
+        ] //关闭自动控制特征
+    }
+);
+
 ---
 
 #### 准备
