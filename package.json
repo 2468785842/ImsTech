@@ -9,15 +9,18 @@
   },
   "author": "",
   "license": "ISC",
+  "overrides": {
+    "whatwg-url": "^13.0.0"
+  },
   "devDependencies": {
-    "@playwright/browser-firefox": "^1.44.0",
     "@types/node": "^20.12.11",
     "dotenv": "^16.4.5",
-    "playwright": "^1.44.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "source-map-support": "^0.5.21"
   },
   "dependencies": {
-    "source-map-support": "^0.5.21"
+    "playwright": "^1.44.0",
+    "openai": "^4.67.3"
   }
 }
