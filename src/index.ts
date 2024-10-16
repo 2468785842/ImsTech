@@ -12,13 +12,6 @@ const loginUrl = `${process.env._LOGIN_URL!!}/am/UI/Login`;
 const userUrl = `${process.env._HOME_URL!!}/user`;
 const homeUrl = `${userUrl}/index#/`;
 
-// import AIModel from './ai/AIModel.js';
-
-// (async () => {
-//   await (await AIModel.create())?.getResponse('你是谁');
-//   await (await AIModel.create())?.getResponse('哈喽!');
-// })();
-
 (async () => {
   // Setup
   const context = await chromium.launchPersistentContext(

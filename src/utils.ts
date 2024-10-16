@@ -21,14 +21,16 @@ async function waitForSPALoaded(page: Page) {
   });
 }
   
-
-const rl = ReadLine.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
 function input(query: string) {
-  return new Promise<string>((resolve) => rl.question(query, resolve));
+  const rl = ReadLine.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise<string>((resolve) => {
+    rl.question(query, resolve);
+    rl.close();
+  });
 }
 
 export {

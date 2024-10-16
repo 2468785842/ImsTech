@@ -9,16 +9,11 @@
 const context = await chromium.launchPersistentContext(
     process.env._USER_DATA!!,
     {
-        // Fuck... because Chromuim not support h.264,so need replace for Chrome,
         executablePath: process.env._CHROME_DEV!!,
-        headless: false,
+        headless: false, // 如果不想显示浏览器, 设置为true启动无头模式
         viewport: null,
-        slowMo: 1000, // 搞太快会限制访问, 
-        bypassCSP: true,
-        args: [
-            "--start-maximized",
-            "--disable-blink-features=AutomationControlled"
-        ] //关闭自动控制特征
+        slowMo: 3000, // 搞太快会限制访问, 这里设置3秒
+        ...
     }
 );
 ```

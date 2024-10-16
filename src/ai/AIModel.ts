@@ -1,12 +1,15 @@
 import OpenAI from 'openai';
 import 'dotenv/config';
-import assert from 'assert';
 import { exit } from 'process';
+import chalk from 'chalk';
+
+import { expect } from '@playwright/test';
 
 import { input } from '../utils.js';
 
 class AIModel {
-  static async create(): Promise<AIModel | null> {
+
+  static async init(agree: boolean = false): Promise<AIModel | null> {
     if (AIModel.instance)
       return AIModel.instance;
 
@@ -16,21 +19,24 @@ class AIModel {
 
     console.log('检查AI设置:');
 
-    if (!api) console.log('未设置 API');
-    if (!key) console.log('未设置 Key');
-    if (!model) console.log('未设置 Model');
+    const checkUnicode = (v: any) => v ? chalk.green('✓') : chalk.red('x');
+
+    console.log('API', checkUnicode(api));
+    console.log('Key', checkUnicode(key));
+    console.log('Model', checkUnicode(model));
 
     if (!(api && key && model)) {
       console.log('不自动答题(AI未加载)');
       return null;
     }
 
-    console.log('OK');
-    console.log('你真的确定需要"AI"答题吗? ');
+    if (!agree) {
+      console.log('你真的确定需要"AI"答题吗? ');
 
-    if ((await input('这可能有风险需要自己承担( "y" 确定): ')) != 'y') {
-      console.log('程序退出');
-      exit();
+      if((await input('这可能有风险需要自己承担( "y" 确定): ')) != 'y') {
+        console.log('程序退出');
+        exit();
+      }
     }
 
     AIModel.instance = new AIModel(api, key, model);
@@ -46,21 +52,20 @@ class AIModel {
   }
 
   async getResponse(prompt: string) {
-    assert(this.#openai, '意外错误 OpenAI 客户端为 null');
+    expect(this.#openai, '意外错误 OpenAI 客户端为 null').not.toBeNull();
     const content: OpenAI.Chat.ChatCompletion =
       await this.#openai!!.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
         model: this.#model
       });
-    for (const choice of content.choices) {
-      console.log('AI: ', choice.message.content);
-    }
+    console.log('AI Answer: ');
+    content.choices.forEach(choices => console.log(choices.message.content));
   }
 
   #model: string;
   #openai: OpenAI;
 
-  private static instance?: AIModel;
+  static instance?: AIModel;
 }
 
 export default AIModel;
