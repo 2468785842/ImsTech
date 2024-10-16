@@ -1,9 +1,32 @@
 ### 使用nodejs, playwright构建的国开自动刷课
 ![](./image.png)
+
+#### 搞快了会被检测异常行为, 需要等待一个小时
+
+![image](https://github.com/user-attachments/assets/f4dc8d3c-af98-4520-96fc-f4dc16ef73d0)
+```javascript
+// 修改index.ts中的slowMo弄慢点, 自己看着弄吧
+// Setup
+const context = await chromium.launchPersistentContext(
+    process.env._USER_DATA!!,
+    {
+        // Fuck... because Chromuim not support h.264,so need replace for Chrome,
+        executablePath: process.env._CHROME_DEV!!,
+        headless: false,
+        viewport: null,
+        slowMo: 1000, // 搞太快会限制访问, 
+        bypassCSP: true,
+        args: [
+            "--start-maximized",
+            "--disable-blink-features=AutomationControlled"
+        ] //关闭自动控制特征
+    }
+);
+```
 ---
 
 #### 准备
-- 下载 [ChromeDev](https://www.google.com/intl/zh-CN/chrome/dev/), [Node.js](https://nodejs.org/zh-cn)
+- 下载 [ChromeDev](https://www.google.com/intl/zh-CN/chrome/dev/)(如果你自己有Chrome不需要), [Node.js](https://nodejs.org/zh-cn)
 - 打开`cmd` 运行 `npm install` 命令下载依赖
 
 #### 配置
@@ -14,8 +37,8 @@ _HOME_URL="https://lms.ouchn.cn"
 
 _ACCOUNT="xxx" # 账号
 _PASSWORD="xxx" # 密码
-_CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # chrome dev路径
-_USER_DATA="C:\ChromiumCache" # 缓存
+_CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # chrome dev路径, 或者你自己的Chrome安装目录
+_USER_DATA="C:\ChromiumCache" # 缓存, 自己创建的文件夹, 用来存缓存文件Cookie的, 这样不用每次启动都登陆
 ```
 
 #### 运行
