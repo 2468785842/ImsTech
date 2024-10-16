@@ -1,5 +1,4 @@
 import { Locator, Page } from 'playwright';
-import { expect } from 'playwright/test';
 import * as Activity from '../Activity.js';
 import 'dotenv/config';
 import { waitForSPALoaded } from '../utils.js';
@@ -23,19 +22,19 @@ async function getUncompletedCourses(
 ): Promise<CourseInfo[]> {
   console.log('正在获取未完成的课程...');
 
-  let courseInfos: CourseInfo[] = [];
+  let courseInfoList: CourseInfo[] = [];
 
   await page.getByText(activityInfo.title).click();
   await page.waitForURL(RegExp(`^${courseUrl}.*`));
   // await page.waitForTimeout(100);
   await page.locator('input[type="checkbox"]').setChecked(true);
-  try {
-    const expand = page.getByText('全部展开');
-    await expect(expand).toBeVisible({ timeout: 500 });
-    await expand.click();
-  } catch {
-    console.warn('没有全部展开按钮,可能已经展开?');
-  }
+
+  page
+    .getByText('全部展开')
+    .click({ timeout: 500 })
+    .catch((_) => {
+      console.warn('没有全部展开按钮,可能已经展开?');
+    });
 
   // 也许有更高效的方法,逆向出加载函数然后监听?而不是等待2s
   // await page.waitForTimeout(2000);
@@ -59,7 +58,7 @@ async function getUncompletedCourses(
         activities.map(async (activity: Locator) => {
           // some stuff is finished, so is empty, we will skip
           try {
-            if ('' == (await activity.innerHTML())) return;
+            if ('' == (await activity.innerHTML({ timeout: 1000 }))) return;
           } catch {
             return;
           }
@@ -93,15 +92,15 @@ async function getUncompletedCourses(
           const title = await titleElt.textContent();
           if (!title) {
             console.log(activity);
-            throw 'unexception error: course title is undefined';
+            throw 'error: course title is undefined';
           }
           courseInfo.title = title;
-          courseInfos.push(courseInfo);
+          courseInfoList.push(courseInfo);
         })
       );
     }
   }
-  return courseInfos;
+  return courseInfoList;
 }
 
 async function checkActivityType(activity: Locator): Promise<CourseType> {

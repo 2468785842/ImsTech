@@ -53,16 +53,16 @@ const homeUrl = `${userUrl}/index#/`;
   for (let item of listItems) {
     console.log(item.title, item.percent);
 
-    let courses = await Search.getUncompletedCourses(page, item);
-    courses = courses.filter((course) => course.progress != 'full');
-    let i = 0;
+    const courses = (await Search.getUncompletedCourses(page, item)).filter(
+      (course) => course.progress != 'full'
+    );
 
-    for (let course of courses) {
+    for (const [i, course] of courses.entries()) {
       console.log(
         course.module,
         course.title,
         course.progress,
-        `: ${++i}/${courses.length}`
+        `: ${i}/${courses.length}`
       );
 
       const strategy = ExecStrategy.strategyTable[course.type];
@@ -75,32 +75,23 @@ const homeUrl = `${userUrl}/index#/`;
         continue;
       }
 
-      let t = page
+      let t = await page
         .locator(`#${course.id}`)
         .getByText(course.title, { exact: true })
-        .first();
+        .elementHandle()
+        .catch((_) => null);
 
-      try {
-        if (
-          (await t.getAttribute('class', { timeout: 100 }))!!.lastIndexOf(
-            '.locked'
-          ) != -1
-        ) {
-          console.log('课程锁定', '跳过');
-          continue;
-        }
+      if ((await t?.getAttribute('class'))?.lastIndexOf('.locked') != -1) {
+        console.log('课程锁定', '跳过');
+        continue;
+      }
 
-        if (
-          await t
-            .locator('xpath=../*[contains(@class, "upcoming")]')
-            .isVisible()
-        ) {
-          console.log('课程未开始', '跳过');
-          continue;
-        }
-      } catch {}
+      if (await t?.$('xpath=../*[contains(@class, "upcoming")]')) {
+        console.log('课程未开始', '跳过');
+        continue;
+      }
 
-      await t.click({ timeout: 0 });
+      await t?.click({ timeout: 5000 });
 
       await page.waitForURL(RegExp(`^${Search.courseUrl}.*`), {
         timeout: 3000,
@@ -146,5 +137,5 @@ async function login(page: Page) {
   }
   await page.getByRole('button', { name: '登录' }).click();
   // 等待跳转, timeout 可能被父级 page option覆盖呢..., 在这里显式声明好了
-  await page.waitForURL(homeUrl, { timeout: 0 });
+  await page.waitForURL(homeUrl, { timeout: 30000 });
 }

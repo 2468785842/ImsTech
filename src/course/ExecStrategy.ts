@@ -48,7 +48,7 @@ const strategyTable: Partial<Record<CourseType, StrategyFunc>> = {
   page: pageStrategy, // pdf页处理策略
   tencent_meeting: tencentMeetingStrategy, // 直播处理策略
   material: materialStrategy, // 参考资料处理策略
-  // exam: undefined,
+  exam: examStrategy,
   // unknown: undefined,
   web_link: webLinkStrategy,
   // homework: undefined,
@@ -76,6 +76,10 @@ const strategyTable: Partial<Record<CourseType, StrategyFunc>> = {
   // virtual_experiment: undefined,
   // mix_task: undefined
 };
+
+async function examStrategy(page: Page, _: CourseProgress) {
+
+}
 
 async function webLinkStrategy(page: Page, _: CourseProgress) {
   // const id = window.originLiveId
