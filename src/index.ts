@@ -12,11 +12,11 @@ const loginUrl = `${process.env._LOGIN_URL!!}/am/UI/Login`;
 const userUrl = `${process.env._HOME_URL!!}/user`;
 const homeUrl = `${userUrl}/index#/`;
 
-import XunFeiModelClient from './ai/XunFeiModel.js';
+// import AIModel from './ai/AIModel.js';
 
 // (async () => {
-//   await (await XunFeiModelClient.create())?.getResponse('你是谁');
-//   await (await XunFeiModelClient.create())?.getResponse('哈喽!');
+//   await (await AIModel.create())?.getResponse('你是谁');
+//   await (await AIModel.create())?.getResponse('哈喽!');
 // })();
 
 (async () => {
@@ -28,7 +28,7 @@ import XunFeiModelClient from './ai/XunFeiModel.js';
       executablePath: process.env._CHROME_DEV!!,
       headless: false,
       viewport: null,
-      slowMo: 7000, // 搞太快会限制访问
+      slowMo: 3000, // 搞太快会限制访问
       bypassCSP: true,
       args: [
         '--start-maximized',

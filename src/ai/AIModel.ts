@@ -5,10 +5,10 @@ import { exit } from 'process';
 
 import { input } from '../utils.js';
 
-class XunFeiModelClient {
-  static async create(): Promise<XunFeiModelClient | null> {
-    if (XunFeiModelClient.instance)
-      return XunFeiModelClient.instance;
+class AIModel {
+  static async create(): Promise<AIModel | null> {
+    if (AIModel.instance)
+      return AIModel.instance;
 
     const api = process.env._API;
     const key = process.env._KEY;
@@ -33,8 +33,8 @@ class XunFeiModelClient {
       exit();
     }
 
-    XunFeiModelClient.instance = new XunFeiModelClient(api, key, model);
-    return XunFeiModelClient.instance;
+    AIModel.instance = new AIModel(api, key, model);
+    return AIModel.instance;
   }
 
   private constructor(api: string, key: string, model: string) {
@@ -60,7 +60,7 @@ class XunFeiModelClient {
   #model: string;
   #openai: OpenAI;
 
-  private static instance?: XunFeiModelClient;
+  private static instance?: AIModel;
 }
 
-export default XunFeiModelClient;
+export default AIModel;

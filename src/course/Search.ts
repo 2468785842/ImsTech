@@ -111,7 +111,7 @@ async function checkActivityType(activity: Locator): Promise<CourseType> {
   if (cls) {
     const fStart = cls.indexOf(prefix);
     const front = cls.substring(fStart);
-    const courseType = front.substring(prefix.length);
+    const courseType = front.substring(prefix.length).replace('-', '_');
     return (courseType in COURSE_TYPE ? courseType : 'unknown') as CourseType;
   }
   return 'unknown';
