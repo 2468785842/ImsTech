@@ -48,13 +48,13 @@ class AIModel {
     this.#openai = new OpenAI({
       baseURL: api,
       apiKey: key
-    })!!;
+    })!;
   }
 
   async getResponse(prompt: string) {
     expect(this.#openai, '意外错误 OpenAI 客户端为 null').not.toBeNull();
     const content: OpenAI.Chat.ChatCompletion =
-      await this.#openai!!.chat.completions.create({
+      await this.#openai!.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
         model: this.#model
       });

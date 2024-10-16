@@ -6,7 +6,7 @@ export default defineConfig({
   retries: 2,          // 测试失败时的重试次数
   use: {
     launchOptions: {
-      executablePath: process.env._CHROME_DEV!!,
+      executablePath: process.env._CHROME_DEV!,
     },
     headless: true,    // 是否启用无头模式
     viewport: { width: 1280, height: 720 }, // 浏览器窗口尺寸

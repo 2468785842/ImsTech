@@ -6,7 +6,7 @@ import { CourseType, COURSE_TYPE } from './ExecStrategy.js';
 
 type CourseProgress = 'full' | 'part' | 'none';
 
-const courseUrl = `${process.env._HOME_URL!!}/course`;
+const courseUrl = `${process.env._HOME_URL!}/course`;
 
 type CourseInfo = {
   id: string;
@@ -43,7 +43,7 @@ async function getUncompletedCourses(
 
   const modules = await page.locator('div.module').all();
   for (const module of modules) {
-    const id = (await module.getAttribute('id'))!!;
+    const id = (await module.getAttribute('id'))!;
     const moduleName = await module.locator('span.module-name').textContent();
     //多个课程组
     const elements = await module
@@ -65,7 +65,7 @@ async function getUncompletedCourses(
           let courseInfo: CourseInfo = {
             id,
             type: await checkActivityType(activity),
-            module: moduleName!!,
+            module: moduleName!,
             title: '',
             progress: 'none'
           };
@@ -82,7 +82,7 @@ async function getUncompletedCourses(
 
           // check course progress
           for (let v of ['full', 'part', 'none'] as CourseProgress[]) {
-            if (progress!!.lastIndexOf(v) != -1) {
+            if (progress!.lastIndexOf(v) != -1) {
               courseInfo.progress = v;
               break;
             }

@@ -7,9 +7,9 @@
 // 修改index.ts中的slowMo弄慢点, 自己看着弄吧
 // Setup
 const context = await chromium.launchPersistentContext(
-    process.env._USER_DATA!!,
+    process.env._USER_DATA!,
     {
-        executablePath: process.env._CHROME_DEV!!,
+        executablePath: process.env._CHROME_DEV!,
         headless: false, // 如果不想显示浏览器, 设置为true启动无头模式
         viewport: null,
         slowMo: 3000, // 搞太快会限制访问, 这里设置3秒

@@ -169,8 +169,8 @@ async function forumStrategy(page: Page, progress: CourseProgress) {
   const form = page.locator('.topic-form-section');
   const titleInput = form.locator('input[name="title"]');
   const contentInput = form.locator('.simditor-body>p');
-  await titleInput.fill(title!!);
-  await contentInput.fill(content!!);
+  await titleInput.fill(title!);
+  await contentInput.fill(content!);
 
   await page
     .locator('#add-topic-popup .form-buttons')
@@ -241,7 +241,7 @@ async function onlineVideoStrategy(page: Page) {
 
   // check video play over?
   const display = page.locator('div.mvp-time-display');
-  const pgs = (await display.textContent({ timeout: 1000 }))!!.split('/');
+  const pgs = (await display.textContent({ timeout: 1000 }))!.split('/');
 
   console.log('play progress: ', pgs[0].trim(), pgs[1].trim());
 
@@ -282,7 +282,7 @@ async function onlineVideoStrategy(page: Page) {
       ) as HTMLElement;
       // start duration / end duration
       // example: 23:11 / 36:11
-      const progress = display?.textContent!!.split('/');
+      const progress = display.textContent!.split('/');
       const cur = progress[0].trim();
       const end = progress[1].trim();
 

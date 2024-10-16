@@ -7,18 +7,18 @@ import * as Search from './course/Search.js';
 import 'dotenv/config';
 import { waitForSPALoaded } from './utils.js';
 
-const loginUrl = `${process.env._LOGIN_URL!!}/am/UI/Login`;
+const loginUrl = `${process.env._LOGIN_URL!}/am/UI/Login`;
 
-const userUrl = `${process.env._HOME_URL!!}/user`;
+const userUrl = `${process.env._HOME_URL!}/user`;
 const homeUrl = `${userUrl}/index#/`;
 
 (async () => {
   // Setup
   const context = await chromium.launchPersistentContext(
-    process.env._USER_DATA!!,
+    process.env._USER_DATA!,
     {
       // Fuck... because Chromuim not support h.264,so need replace for Chrome
-      executablePath: process.env._CHROME_DEV!!,
+      executablePath: process.env._CHROME_DEV!,
       headless: false,
       viewport: null,
       slowMo: 3000, // 搞太快会限制访问
@@ -75,23 +75,22 @@ const homeUrl = `${userUrl}/index#/`;
         continue;
       }
 
-      let t = await page
+      let t = (await page
         .locator(`#${course.id}`)
         .getByText(course.title, { exact: true })
-        .elementHandle()
-        .catch((_) => null);
+        .elementHandle())!;
 
-      if ((await t?.getAttribute('class'))?.lastIndexOf('.locked') != -1) {
+      if ((await t.getAttribute('class'))!.lastIndexOf('.locked') != -1) {
         console.log('课程锁定', '跳过');
         continue;
       }
 
-      if (await t?.$('xpath=../*[contains(@class, "upcoming")]')) {
+      if (await t.$('xpath=../*[contains(@class, "upcoming")]')) {
         console.log('课程未开始', '跳过');
         continue;
       }
 
-      await t?.click({ timeout: 5000 });
+      await t.click({ timeout: 5000 });
 
       await page.waitForURL(RegExp(`^${Search.courseUrl}.*`), {
         timeout: 3000,
@@ -129,8 +128,8 @@ const homeUrl = `${userUrl}/index#/`;
 })();
 
 async function login(page: Page) {
-  await page.getByPlaceholder('请输入登录名').fill(process.env._ACCOUNT!!);
-  await page.getByPlaceholder('请输入登录密码').fill(process.env._PASSWORD!!);
+  await page.getByPlaceholder('请输入登录名').fill(process.env._ACCOUNT!);
+  await page.getByPlaceholder('请输入登录密码').fill(process.env._PASSWORD!);
   const agree = page.locator('#agreeCheckBox').first();
   if (!(await agree.isChecked())) {
     await agree.check();
