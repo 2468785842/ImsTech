@@ -18,8 +18,6 @@ export default class WebLinkProc implements Processor {
   }
 }
 
-registerProcessor(new WebLinkProc());
-
 // https://v.ouchn.cn/live/watch/heartbeat/[liveId]?参数1=值1&参数2=值2&...
 // liveId 获取方式 window.originLiveId
 // t=时间戳

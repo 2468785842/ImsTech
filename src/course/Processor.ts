@@ -94,7 +94,8 @@ fs.readdirSync(scriptsFolder)
     const fileUrl = new URL(`file://${filePath}`);
 
     await import(fileUrl.href) // 使用合法的 file:// URL
-      .then(() => {
+      .then((m) => {
+        registerProcessor(new m.default());
         console.log(`${file} loaded successfully`);
         // 可以根据需要使用加载的模块 'module'
       })

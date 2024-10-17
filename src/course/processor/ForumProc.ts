@@ -33,5 +33,3 @@ export default class ForumProc implements Processor {
       .click();
   }
 }
-
-registerProcessor(new ForumProc());

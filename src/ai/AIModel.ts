@@ -8,10 +8,8 @@ import { expect } from '@playwright/test';
 import { input } from '../utils.js';
 
 class AIModel {
-
   static async init(agree: boolean = false): Promise<AIModel | null> {
-    if (AIModel.instance)
-      return AIModel.instance;
+    if (AIModel.instance) return AIModel.instance;
 
     const api = process.env._API;
     const key = process.env._KEY;
@@ -19,7 +17,7 @@ class AIModel {
 
     console.log('检查AI设置:');
 
-    const checkUnicode = (v: any) => v ? chalk.green('✓') : chalk.red('✘');
+    const checkUnicode = (v: any) => (v ? chalk.green('✓') : chalk.red('✘'));
 
     console.log('API', checkUnicode(api));
     console.log('Key', checkUnicode(key));
@@ -33,7 +31,7 @@ class AIModel {
     if (!agree) {
       console.log('你真的确定需要"AI"答题吗? ');
 
-      if((await input('这可能有风险需要自己承担( "y" 确定): ')) != 'y') {
+      if ((await input('这可能有风险需要自己承担( "y" 确定): ')) != 'y') {
         console.log('程序退出');
         exit();
       }
@@ -51,15 +49,15 @@ class AIModel {
     })!;
   }
 
-  async getResponse(prompt: string) {
+  async getResponse(prompt: string, role: 'user' | 'system' = 'user') {
     expect(this.#openai, '意外错误 OpenAI 客户端为 null').not.toBeNull();
     const content: OpenAI.Chat.ChatCompletion =
       await this.#openai!.chat.completions.create({
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ role, content: prompt }],
         model: this.#model
       });
     console.log('AI Answer: ');
-    content.choices.forEach(choices => console.log(choices.message.content));
+    content.choices.forEach((choices) => console.log(choices.message.content));
   }
 
   #model: string;

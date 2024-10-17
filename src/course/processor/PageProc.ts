@@ -44,5 +44,3 @@ export default class PageProc implements Processor {
     console.log(`scroll to ${scrollH}`);
   }
 }
-
-registerProcessor(new PageProc());

@@ -84,5 +84,3 @@ export default class OnlineVideoProc implements Processor {
     );
   }
 }
-
-registerProcessor(new OnlineVideoProc());

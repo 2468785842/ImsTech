@@ -15,5 +15,3 @@ export default class Material implements Processor {
     }
   }
 }
-
-registerProcessor(new Material());

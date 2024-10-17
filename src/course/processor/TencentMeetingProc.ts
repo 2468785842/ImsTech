@@ -10,5 +10,3 @@ export default class TencentMeetingProc implements Processor {
     console.warn('直播任务', 'skip');
   }
 }
-
-registerProcessor(new TencentMeetingProc());
