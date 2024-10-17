@@ -1,10 +1,10 @@
 import { chromium, Page } from 'playwright';
 import 'source-map-support/register.js';
 
-import * as Activity from './Activity.js';
-import * as ExecStrategy from './course/ExecStrategy.js';
-import * as Search from './course/Search.js';
 import 'dotenv/config';
+import * as Activity from './Activity.js';
+import * as Processor from './course/Processor.js';
+import * as Search from './course/Search.js';
 import { waitForSPALoaded } from './utils.js';
 
 const loginUrl = `${process.env._LOGIN_URL!}/am/UI/Login`;
@@ -21,7 +21,7 @@ const homeUrl = `${userUrl}/index#/`;
       executablePath: process.env._CHROME_DEV!,
       headless: false,
       viewport: null,
-      slowMo: 3000, // 搞太快会限制访问
+      slowMo: 1000, // 搞太快会限制访问
       bypassCSP: true,
       args: [
         '--start-maximized',
@@ -59,28 +59,34 @@ const homeUrl = `${userUrl}/index#/`;
 
     for (const [i, course] of courses.entries()) {
       console.log(
-        course.module,
+        course.moduleName,
+        course.syllabusName,
         course.title,
         course.progress,
         `: ${i}/${courses.length}`
       );
 
-      const strategy = ExecStrategy.strategyTable[course.type];
-      if (!strategy) {
+      const processor = Processor.getProcessor(course.type);
+      if (!processor) {
         console.warn(
           '不支持的课程类型:',
-          ExecStrategy.COURSE_TYPE[course.type],
+          Processor.COURSE_TYPE[course.type],
           '\n'
         );
         continue;
       }
 
+      if (processor.condition && !processor.condition(course.progress)) {
+        continue;
+      }
+
       let t = (await page
-        .locator(`#${course.id}`)
+        .locator(`#${course.moduleId}`)
+        .locator(`#${course.syllabusId}`)
         .getByText(course.title, { exact: true })
         .elementHandle())!;
 
-      if ((await t.getAttribute('class'))!.lastIndexOf('.locked') != -1) {
+      if ((await t.getAttribute('class'))!.lastIndexOf('locked') != -1) {
         console.log('课程锁定', '跳过');
         continue;
       }
@@ -100,11 +106,11 @@ const homeUrl = `${userUrl}/index#/`;
       for (let count = 5; count > -1; count--) {
         await waitForSPALoaded(page);
         try {
-          await strategy(page, course.progress);
+          await processor.exec(page);
           break;
         } catch (e) {
           console.error(e);
-          console.log('exec strategy failed: retry', count);
+          console.log('process course failed: retry', count);
           await page.reload({ timeout: 3000 });
         }
       }
@@ -114,8 +120,9 @@ const homeUrl = `${userUrl}/index#/`;
         timeout: 0,
         waitUntil: 'domcontentloaded'
       });
-      await page.reload({ timeout: 0, waitUntil: 'domcontentloaded' });
+      await page.reload({ timeout: 10000, waitUntil: 'domcontentloaded' });
       // console.debug("go back to course page");
+      console.log('-'.repeat(10));
     }
     await page.goBack({
       timeout: 0,

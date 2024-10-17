@@ -5,10 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "tsc && node dist/index.js"
+    "start": "tsc && node dist/src/index.js"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "overrides": {
     "whatwg-url": "^13.0.0"
   },

@@ -40,4 +40,4 @@ async function getActivities(page: Page): Promise<ActivityInfo[]> {
   );
 }
 
-export { getActivities, ActivityInfo };
+export { ActivityInfo, getActivities };

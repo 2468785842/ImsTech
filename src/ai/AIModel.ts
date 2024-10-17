@@ -19,7 +19,7 @@ class AIModel {
 
     console.log('检查AI设置:');
 
-    const checkUnicode = (v: any) => v ? chalk.green('✓') : chalk.red('x');
+    const checkUnicode = (v: any) => v ? chalk.green('✓') : chalk.red('✘');
 
     console.log('API', checkUnicode(api));
     console.log('Key', checkUnicode(key));

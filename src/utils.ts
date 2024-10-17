@@ -34,6 +34,5 @@ function input(query: string) {
 }
 
 export {
-  waitForSPALoaded,
-  input,
-}
+  input, waitForSPALoaded
+};
