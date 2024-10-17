@@ -10,10 +10,6 @@ import AIModel from '../src/ai/AIModel.js';
 
 test('单项选择题测试', async () => {
   expect(await AIModel.init(true)).not.toBeNull();
-  await AIModel.instance!.getResponse(
-    '有几道题不会 你只需要返回, 正确答案的字母',
-    'system'
-  );
 
   const question1 = `1.（  ）是社会主义先进文化的集中体现。
     A. 社会主义核心价值观
@@ -33,16 +29,15 @@ test('单项选择题测试', async () => {
 
 test('判断题测试', async () => {
   expect(await AIModel.init(true)).not.toBeNull();
-  await AIModel.instance!.getResponse(
-    '有几道题不会 你只需要返回, 正确答案的字母',
-    'system'
-  );
+
   const question1 = `3.文化自信是历史自信、文明自信生成的基础。
       A.正确
       B.错误`;
+
   const question2 = `4.精神上的独立自主是坚定文化自信的思想基础，也是文化发展的重要条件。
       A.正确
       B.错误`;
+
   await AIModel.instance!.getResponse(question1);
   await AIModel.instance!.getResponse(question2);
 });

@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',  // 指定测试文件夹
   timeout: 30000,      // 每个测试的超时时间
-  retries: 2,          // 测试失败时的重试次数
+  retries: 1,          // 测试失败时的重试次数
   use: {
     launchOptions: {
       executablePath: process.env._CHROME_DEV!,

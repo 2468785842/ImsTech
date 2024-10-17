@@ -49,11 +49,23 @@ class AIModel {
     })!;
   }
 
-  async getResponse(prompt: string, role: 'user' | 'system' = 'user') {
+  async getResponse(prompt: string) {
     expect(this.#openai, '意外错误 OpenAI 客户端为 null').not.toBeNull();
     const content: OpenAI.Chat.ChatCompletion =
       await this.#openai!.chat.completions.create({
-        messages: [{ role, content: prompt }],
+        messages: [
+          {
+            role: 'system',
+            content:
+              '你将回答选择题，且只返回正确答案的字母（A、B、C 或 D）。请确保根据国家开发大学的形势与政策课程，并严格选择一个正确答案的字母作为输出。'
+          },
+          {
+            role: 'user',
+            content: '请回答以下选择题，并只返回正确答案的字母：'
+          },
+          { role: 'user', content: prompt },
+          { role: 'user', content: '请只返回正确答案的字母。' }
+        ],
         model: this.#model
       });
     console.log('AI Answer: ');

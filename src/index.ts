@@ -51,6 +51,7 @@ const homeUrl = `${userUrl}/index#/`;
   console.log('课程组数量: ', listItems.length);
 
   for (let item of listItems) {
+    console.log('-'.repeat(60));
     console.log(item.title, item.percent);
 
     const courses = (await Search.getUncompletedCourses(page, item)).filter(
@@ -58,10 +59,9 @@ const homeUrl = `${userUrl}/index#/`;
     );
 
     for (const [i, course] of courses.entries()) {
-      console.log('-'.repeat(30));
       console.log(
         course.moduleName,
-        course.syllabusName,
+        course.syllabusName ?? '',
         course.title,
         course.progress,
         `: ${i}/${courses.length}`
@@ -81,9 +81,11 @@ const homeUrl = `${userUrl}/index#/`;
         continue;
       }
 
-      let t = (await page
-        .locator(`#${course.moduleId}`)
-        .locator(`#${course.syllabusId}`)
+      let tLoc = page.locator(`#${course.moduleId}`);
+      if (course.syllabusId) {
+        tLoc = tLoc.locator(`#${course.syllabusId}`);
+      }
+      const t = (await tLoc
         .getByText(course.title, { exact: true })
         .elementHandle())!;
 
