@@ -58,6 +58,7 @@ const homeUrl = `${userUrl}/index#/`;
     );
 
     for (const [i, course] of courses.entries()) {
+      console.log('-'.repeat(30));
       console.log(
         course.moduleName,
         course.syllabusName,
@@ -122,7 +123,6 @@ const homeUrl = `${userUrl}/index#/`;
       });
       await page.reload({ timeout: 10000, waitUntil: 'domcontentloaded' });
       // console.debug("go back to course page");
-      console.log('-'.repeat(10));
     }
     await page.goBack({
       timeout: 0,
