@@ -4,9 +4,13 @@
 
 ![image](https://github.com/user-attachments/assets/f4dc8d3c-af98-4520-96fc-f4dc16ef73d0)
 ```javascript
-  const browser = await firefox.launch({
-    headless: false,
-    // viewport: null,
+await chromium.use(StealthPlugin()).launch({
+    executablePath: process.env._CHROME_DEV!,
+
+    // true 不显示浏览器,
+    // 当你登陆过一次存了cookie可以开启,
+    // cookie存在项目根目录下的 .cookie.txt 文件中
+    headless: true,
     slowMo: 1000 // 搞太快会限制访问
   });
 ```
