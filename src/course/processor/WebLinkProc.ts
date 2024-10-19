@@ -1,6 +1,6 @@
 import { Page } from 'playwright';
 
-import { CourseType, Processor, registerProcessor } from '../Processor.js';
+import { CourseType, Processor } from '../Processor.js';
 
 import { waitForSPALoaded } from '../../utils.js';
 

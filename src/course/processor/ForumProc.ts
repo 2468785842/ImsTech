@@ -1,6 +1,6 @@
 import { Page } from 'playwright';
 
-import { Processor, registerProcessor } from '../Processor.js';
+import { Processor } from '../Processor.js';
 
 import { CourseProgress, CourseType } from '../Search.js';
 

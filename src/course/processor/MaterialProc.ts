@@ -1,6 +1,6 @@
 import { Page } from 'playwright';
 
-import { CourseType, Processor, registerProcessor } from '../Processor.js';
+import { CourseType, Processor } from '../Processor.js';
 
 export default class Material implements Processor {
   name: CourseType = 'material';

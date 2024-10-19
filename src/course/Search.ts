@@ -3,10 +3,9 @@ import { Locator, Page } from 'playwright';
 import * as Activity from '../Activity.js';
 import { waitForSPALoaded } from '../utils.js';
 import { COURSE_TYPE, CourseType } from './Processor.js';
+import Config from '../config.js';
 
 type CourseProgress = 'full' | 'part' | 'none';
-
-const courseUrl = `${process.env._HOME_URL!}/course`;
 
 type CourseInfo = {
   moduleId: string;
@@ -18,6 +17,60 @@ type CourseInfo = {
   progress: CourseProgress;
 };
 
+async function getModulesData(locs: Array<Locator>) {
+  return await Promise.all(
+    locs.map(async (module) => {
+      const moduleId = (await module.getAttribute('id'))!;
+      const moduleName = (await module
+        .locator('span.module-name')
+        .textContent())!.trim();
+
+      const syllabuses = await module.locator('div.course-syllabus').all();
+
+      return { moduleId, moduleName, module, syllabuses };
+    })
+  );
+}
+
+async function getSyllabusesData(moduleData: {
+  moduleId: string;
+  moduleName: string;
+  module: Locator;
+  syllabuses: Locator[];
+}) {
+  const { moduleId, moduleName, module, syllabuses } = moduleData;
+
+  if (syllabuses.length != 0) {
+    return await Promise.all(
+      syllabuses.map(async (syllabus) => {
+        const syllabusId = (await syllabus.getAttribute('id'))!;
+        const syllabusName = (await syllabus
+          .locator('div.syllabus-title')
+          .textContent())!.trim();
+
+        //多个课程组
+        const activities = await syllabus
+          .locator('div.learning-activities:not(.ng-hide)')
+          .all();
+
+        return { moduleId, moduleName, syllabusId, syllabusName, activities };
+      })
+    );
+  }
+
+  return [
+    {
+      moduleId,
+      moduleName,
+      syllabusId: null,
+      syllabusName: null,
+      activities: await module
+        .locator('div.learning-activities:not(.ng-hide)')
+        .all()
+    }
+  ];
+}
+
 async function getUncompletedCourses(
   page: Page,
   activityInfo: Activity.ActivityInfo
@@ -25,11 +78,11 @@ async function getUncompletedCourses(
   console.log('正在获取未完成的课程...');
 
   await page.getByText(activityInfo.title).click();
-  await page.waitForURL(RegExp(`^${courseUrl}.*`));
+  await page.waitForURL(RegExp(`^${Config.urls.course()}.*`));
   // await page.waitForTimeout(100);
   await page.locator('input[type="checkbox"]').setChecked(true);
 
-  page
+  await page
     .getByText('全部展开')
     .click({ timeout: 500 })
     .catch(() => {
@@ -40,66 +93,10 @@ async function getUncompletedCourses(
   // await page.waitForTimeout(2000);
   // await page.waitForLoadState('networkidle')
   await waitForSPALoaded(page);
-
   const modules = await page.locator('div.module').all();
-  const modulesData = await Promise.all(
-    modules.map(async (module) => {
-      const moduleId = (await module.getAttribute('id'))!;
-      const moduleName = (await module
-        .locator('span.module-name')
-        .textContent())!.trim();
-
-      const syllabuses = await module.locator('div.course-syllabus').all();
-
-      return {
-        moduleId,
-        moduleName,
-        module,
-        syllabuses
-      };
-    })
-  );
-
+  const modulesData = await getModulesData(modules);
   const syllabusesData = (
-    await Promise.all(
-      modulesData.map(async (moduleData) => {
-        const { moduleId, moduleName, module, syllabuses } = moduleData;
-
-        if (syllabuses.length != 0) {
-          return await Promise.all(
-            syllabuses.map(async (syllabus) => {
-              const syllabusId = (await syllabus.getAttribute('id'))!;
-              const syllabusName = (await syllabus
-                .locator('div.syllabus-title')
-                .textContent())!.trim();
-
-              //多个课程组
-              const activities = await syllabus
-                .locator('div.learning-activities:not(.ng-hide)')
-                .all();
-
-              return {
-                moduleId,
-                moduleName,
-                syllabusId,
-                syllabusName,
-                activities
-              };
-            })
-          );
-        }
-
-        return {
-          moduleId,
-          moduleName,
-          syllabusId: null,
-          syllabusName: null,
-          activities: await module
-            .locator('div.learning-activities:not(.ng-hide)')
-            .all()
-        };
-      })
-    )
+    await Promise.all(modulesData.map(getSyllabusesData))
   ).flat();
 
   const coursesData = (
@@ -188,4 +185,4 @@ async function checkActivityType(activity: Locator): Promise<CourseType> {
   return 'unknown';
 }
 
-export { CourseProgress, CourseType, courseUrl, getUncompletedCourses };
+export { CourseProgress, CourseType, getUncompletedCourses };

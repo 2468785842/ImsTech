@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import { Page } from 'playwright';
 
-import { CourseType, Processor, registerProcessor } from '../Processor.js';
+import { CourseType, Processor } from '../Processor.js';
 
 import { waitForSPALoaded } from '../../utils.js';
 
@@ -16,7 +16,7 @@ export default class OnlineVideoProc implements Processor {
           element.classList.remove('mvp-replay-player-hidden-control');
         },
         {},
-        { timeout: 3000 }
+        { timeout: 30000 }
       );
     };
 

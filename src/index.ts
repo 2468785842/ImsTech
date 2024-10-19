@@ -1,46 +1,21 @@
-import { chromium, Page } from 'playwright';
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import 'source-map-support/register.js';
 
-import 'dotenv/config';
 import * as Activity from './Activity.js';
 import * as Processor from './course/Processor.js';
 import * as Search from './course/Search.js';
 import { waitForSPALoaded } from './utils.js';
-
-const loginUrl = `${process.env._LOGIN_URL!}/am/UI/Login`;
-
-const userUrl = `${process.env._HOME_URL!}/user`;
-const homeUrl = `${userUrl}/index#/`;
+import Config from './config.js';
+import { login } from './Login.js';
 
 (async () => {
-  // Setup
-  const context = await chromium.launchPersistentContext(
-    process.env._USER_DATA!,
-    {
-      // Fuck... because Chromuim not support h.264,so need replace for Chrome
-      executablePath: process.env._CHROME_DEV!,
-      headless: false,
-      viewport: null,
-      slowMo: 1000, // 搞太快会限制访问
-      bypassCSP: true,
-      args: [
-        '--start-maximized',
-        '--disable-blink-features=AutomationControlled'
-      ] //关闭自动控制特征
-    }
-  );
-  let page = context.pages()[0];
-  await page.goto(homeUrl);
-  // 判断是否登录
-  await page
-    .waitForURL(RegExp(`^${loginUrl}.*`), { timeout: 3000 })
-    .then(async () => {
-      console.log('to login');
-      await login(page);
-    })
-    .catch(() => {
-      console.log('is logined');
-    });
+  const browser = await chromium.use(StealthPlugin()).launch({
+    executablePath: process.env._CHROME_DEV!,
+    headless: false,
+    slowMo: 1000 // 搞太快会限制访问
+  });
+  const page = await login(browser);
 
   await page.getByRole('link', { name: '我的课程' }).click();
   await waitForSPALoaded(page);
@@ -101,7 +76,7 @@ const homeUrl = `${userUrl}/index#/`;
 
       await t.click({ timeout: 5000 });
 
-      await page.waitForURL(RegExp(`^${Search.courseUrl}.*`), {
+      await page.waitForURL(RegExp(`^${Config.urls.course()}.*`), {
         timeout: 3000,
         waitUntil: 'domcontentloaded'
       });
@@ -123,7 +98,10 @@ const homeUrl = `${userUrl}/index#/`;
         timeout: 0,
         waitUntil: 'domcontentloaded'
       });
-      await page.reload({ timeout: 10000, waitUntil: 'domcontentloaded' });
+      await page.reload({
+        timeout: 10000,
+        waitUntil: 'domcontentloaded'
+      });
       // console.debug("go back to course page");
     }
     await page.goBack({
@@ -133,17 +111,5 @@ const homeUrl = `${userUrl}/index#/`;
   }
   console.log('program end...');
   // Teardown
-  await context.close();
+  await browser.close();
 })();
-
-async function login(page: Page) {
-  await page.getByPlaceholder('请输入登录名').fill(process.env._ACCOUNT!);
-  await page.getByPlaceholder('请输入登录密码').fill(process.env._PASSWORD!);
-  const agree = page.locator('#agreeCheckBox').first();
-  if (!(await agree.isChecked())) {
-    await agree.check();
-  }
-  await page.getByRole('button', { name: '登录' }).click();
-  // 等待跳转, timeout 可能被父级 page option覆盖呢..., 在这里显式声明好了
-  await page.waitForURL(homeUrl, { timeout: 30000 });
-}
