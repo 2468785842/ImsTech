@@ -6,7 +6,6 @@
 ```javascript
 await chromium.use(StealthPlugin()).launch({
     executablePath: process.env._CHROME_DEV!,
-
     // true 不显示浏览器,
     // 当你登陆过一次存了cookie可以开启,
     // cookie存在项目根目录下的 .cookie.txt 文件中
@@ -32,9 +31,9 @@ _CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # chrome
 
 #### 运行
 ```shell
-    npm config set registry https://registry.npmmirror.com
-    npm install
-    npm run start
+npm config set registry https://registry.npmmirror.com
+npm install
+npm run start
 ```
 
 #### 注意
