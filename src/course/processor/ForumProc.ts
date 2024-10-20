@@ -7,7 +7,7 @@ import { CourseInfo, CourseType } from '../search.js';
 export default class ForumProc implements Processor {
   name: CourseType = 'forum';
 
-  condition(info: CourseInfo): boolean {
+  async condition(info: CourseInfo) {
     // ...就算发帖还是完成一半的状态...可能是国开系统bug...我们直接跳过
     return info.progress != 'part';
   }

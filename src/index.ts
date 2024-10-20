@@ -46,13 +46,13 @@ import { login } from './login.js';
       if (!processor) {
         console.warn(
           '不支持的课程类型:',
-          Processor.COURSE_TYPE[course.type],
+          Processor.getCourseType(course.type),
           '\n'
         );
         continue;
       }
 
-      if (processor.condition && !processor.condition(course)) {
+      if (processor.condition && !(await processor.condition(course))) {
         continue;
       }
 

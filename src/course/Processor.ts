@@ -8,8 +8,6 @@ import { dirname } from 'path';
 
 import { CourseProgress, CourseInfo } from './search.js';
 
-type StrategyFunc = (page: Page, progress: CourseProgress) => Promise<void>;
-
 // TODO: 重构
 const COURSE_TYPE = {
   web_link: '线上链接',
@@ -47,6 +45,16 @@ const COURSE_TYPE = {
   unknown: '未知'
 };
 
+function getCourseType(key: CourseType) {
+  return COURSE_TYPE[key];
+}
+
+function hasCourseType(key: string) {
+  return key in COURSE_TYPE;
+}
+
+type StrategyFunc = (page: Page, progress: CourseProgress) => Promise<void>;
+
 type CourseType = keyof typeof COURSE_TYPE;
 
 interface Processor {
@@ -56,13 +64,11 @@ interface Processor {
    * 执行条件, true 执行 exec(...), 反之不执行
    * condition == null 同样执行 exec(...)
    * @param progress 课程进度
-   * @returns
    */
-  condition?: (progress: CourseInfo) => boolean;
+  condition?: (progress: CourseInfo) => Promise<boolean>;
   /**
    * 处理课程逻辑
    * @param page 当前页面对象
-   * @returns void
    */
   exec: (page: Page) => Promise<void>;
 }
@@ -95,7 +101,9 @@ fs.readdirSync(scriptsFolder)
 
     await import(fileUrl.href) // 使用合法的 file:// URL
       .then((m) => {
-        registerProcessor(new m.default());
+        const processor = new m.default();
+        // 考虑添加动态类型检查?
+        registerProcessor(processor);
         console.log(`${file} loaded successfully`);
         // 可以根据需要使用加载的模块 'module'
       })
@@ -107,4 +115,4 @@ fs.readdirSync(scriptsFolder)
 
 export type { CourseType, Processor, StrategyFunc };
 
-export { COURSE_TYPE, getProcessor, registerProcessor };
+export { getCourseType, hasCourseType, getProcessor, registerProcessor };

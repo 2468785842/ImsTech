@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { Locator, Page } from 'playwright';
 import * as Activity from '../Activity.js';
 import { waitForSPALoaded } from '../utils.js';
-import { COURSE_TYPE, CourseType } from './processor.js';
+import { getCourseType, CourseType, hasCourseType } from './processor.js';
 import Config from '../config.js';
 
 type CourseProgress = 'full' | 'part' | 'none';
@@ -102,7 +102,7 @@ async function getUncompletedCourses(
 
   // some stuff is finished, so is empty, we will skip
   const hasContentActivity = async (activity: Locator) => {
-    return (await activity.innerHTML({ timeout: 1000 }).catch(() => '')) != '';
+    return (await activity.innerHTML({ timeout: 1000 }).catch(String)) != '';
   };
 
   // 过滤无内容和隐藏的活动 useableActivities
@@ -143,18 +143,15 @@ async function getUncompletedCourses(
     // 最多等1s
     const progress = await complete
       .getAttribute('class', { timeout: 1000 })
+      .then((v) => v ?? 'none')
       .catch(() => 'none');
 
-    const getProgress = () =>
-      (['full', 'part', 'none'].find((v) => progress?.includes(v)) ||
-        'none') as CourseProgress;
+    const resolveList: CourseProgress[] = ['full', 'part', 'none'];
+    const resolveProgress = resolveList.find(progress.includes) ?? 'none';
 
-    const courseData: typeof activ & {
+    const courseData: {
       activityLoc: any;
-    } & CourseInfo = {
-      ...activ,
-      progress: getProgress()
-    };
+    } & CourseInfo = { ...activ, progress: resolveProgress };
 
     delete courseData.activityLoc;
 
@@ -182,7 +179,7 @@ async function getActivityType(activity: Locator): Promise<CourseType> {
     const fStart = cls.indexOf(prefix);
     const front = cls.substring(fStart);
     const courseType = front.substring(prefix.length).replace('-', '_');
-    return (courseType in COURSE_TYPE ? courseType : 'unknown') as CourseType;
+    if (hasCourseType(courseType)) return courseType as CourseType;
   }
   return 'unknown';
 }

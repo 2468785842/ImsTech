@@ -18,63 +18,56 @@ export default class {
     return JSON.parse(response.data);
   }
 
-// {
-//     "subjects": [
-//         {
-//             "has_audio": false,
-//             "id": 60022713235,
-//             "point": "0.0",
-//             "sub_subjects": [],
-//             "type": "text"
-//         },
-//         {
-//             "has_audio": false,
-//             "id": 60022713237,
-//             "point": "25.0",
-//             "sub_subjects": [],
-//             "type": "single_selection"
-//         },
-//         {
-//             "has_audio": false,
-//             "id": 60022713239,
-//             "point": "25.0",
-//             "sub_subjects": [],
-//             "type": "single_selection"
-//         },
-//         {
-//             "has_audio": false,
-//             "id": 60022713241,
-//             "point": "0.0",
-//             "sub_subjects": [],
-//             "type": "text"
-//         },
-//         {
-//             "has_audio": false,
-//             "id": 60022713243,
-//             "point": "25.0",
-//             "sub_subjects": [],
-//             "type": "true_or_false"
-//         },
-//         {
-//             "has_audio": false,
-//             "id": 60022713245,
-//             "point": "25.0",
-//             "sub_subjects": [],
-//             "type": "true_or_false"
-//         }
-//     ]
-// }
-  async subjectsSummary(forAllSubjects: boolean) {
+  /**
+   * 获取课程概述
+   * 
+   * @param forAllSubjects 是否获取所有课程?
+   * 
+   * @return
+   * ```json
+   * {
+   *     "subjects": [
+   *         {
+   *             "has_audio": false,
+   *             "id": 60022713245,
+   *             "point": "25.0",
+   *             "sub_subjects": [],
+   *             "type": "true_or_false"
+   *         }
+   *         ...
+   *     ]
+   * }
+   * ```
+   * */
+  async getSubjectsSummary(forAllSubjects: boolean) {
+    // true_or_false 判断题
+
+    // single_selection 单选题
+
+    // text 概要,一般用来分割不同类型题目
+    //   example:
+    //   一、单项选择题
+    //    ....
+    //   二、判断题
+    //    ....
+
+    type subjectType = 'true_or_false' | 'text' | 'single_selection';
+
     const response = await axiosInstance.get(
       `${this.getBaseUrl()}/subject-summary`,
-      {
-        params: {
-          forAllSubjects
-        }
-      }
+      { params: { forAllSubjects } }
     );
-    console.assert(response.status != 200, response.statusText);
-    return JSON.parse(response.data);
-  }
 
+    console.assert(response.status != 200, response.statusText);
+
+    const subjects: Array<{
+      has_audio: boolean;
+      id: number;
+      point: string;
+      sub_subjects: Array<any>;
+      type: subjectType;
+    }> = JSON.parse(response.data)['subjects'];
+
+    return subjects;
+  }
 }
