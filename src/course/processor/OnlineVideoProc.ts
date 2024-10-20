@@ -6,7 +6,6 @@ import ProgressBar from 'progress';
 import { CourseType, Processor } from '../Processor.js';
 
 import { waitForSPALoaded } from '../../utils.js';
-import { start } from 'repl';
 
 export default class OnlineVideoProc implements Processor {
   name: CourseType = 'online_video';
@@ -19,12 +18,22 @@ export default class OnlineVideoProc implements Processor {
           element.classList.remove('mvp-replay-player-hidden-control');
         },
         {},
-        { timeout: 30000 }
+        { timeout: 1000 * 60 }
       );
     };
 
     await waitForSPALoaded(page);
     await page.waitForLoadState('networkidle');
+
+    if (
+      (await page
+        .locator('activity-upload-resource-info-edit')
+        .innerHTML({ timeout: 1000 })
+        .catch(() => '')) == ''
+    ) {
+      console.log('未知原因加载失败: 跳过');
+      return;
+    }
 
     await tryToShowControls();
 
@@ -110,11 +119,13 @@ export default class OnlineVideoProc implements Processor {
   }
 
   private createProgress(cur: number, end: number) {
-    const bar = new ProgressBar('playing [:bar] :percent', {
-      complete: '=',
+    const bar = new ProgressBar('playing [:bar] :percent :current/:total(s)', {
+      head: '>',
       incomplete: ' ',
       total: end,
-      width: 30
+      width: 30,
+      clear: true,
+      callback: () => console.log('play finished')
     });
     bar.tick(cur);
     return bar;

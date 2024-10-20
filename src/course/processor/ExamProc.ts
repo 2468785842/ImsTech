@@ -3,7 +3,7 @@ import { Page } from 'playwright';
 import { Processor } from '../Processor.js';
 
 import { CourseProgress, CourseType } from '../Search.js';
-import { getExam } from '../../api/exam.js';
+import Exam from '../../api/exam.js';
 
 export default class ExamProc implements Processor {
   name: CourseType = 'exam';
@@ -12,7 +12,8 @@ export default class ExamProc implements Processor {
   }
 
   async exec(page: Page) {
-    const r = await getExam(this.getActivttyId(page.url()));
+    const exam = new Exam(this.getActivttyId(page.url()));
+    const r = await exam.get();
     console.log('标题: ', r['title']);
     console.log('成绩比例: ', r['score_percentage']);
     console.log('题目数: ', r['subjects_count']);

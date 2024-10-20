@@ -89,7 +89,7 @@ import { login } from './Login.js';
         } catch (e) {
           console.error(e);
           console.log('process course failed: retry', count);
-          await page.reload({ timeout: 3000 });
+          await page.reload({ timeout: 1000 * 60 });
         }
       }
 
