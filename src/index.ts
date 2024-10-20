@@ -12,7 +12,7 @@ import { login } from './login.js';
 (async () => {
   const browser = await chromium.use(StealthPlugin()).launch({
     executablePath: process.env._CHROME_DEV!,
-    headless: true,
+    headless: false,
     slowMo: 1000 // 搞太快会限制访问
   });
   const page = await login(browser);
