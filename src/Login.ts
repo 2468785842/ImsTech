@@ -53,4 +53,4 @@ async function restoreCookies(): Promise<Array<Cookie>> {
   return [];
 }
 
-export { login };
+export { login, storeCookies, restoreCookies };

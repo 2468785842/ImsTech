@@ -1,9 +1,12 @@
 import { expect } from '@playwright/test';
 import { Page } from 'playwright';
 
+import ProgressBar from 'progress';
+
 import { CourseType, Processor } from '../Processor.js';
 
 import { waitForSPALoaded } from '../../utils.js';
+import { start } from 'repl';
 
 export default class OnlineVideoProc implements Processor {
   name: CourseType = 'online_video';
@@ -25,13 +28,21 @@ export default class OnlineVideoProc implements Processor {
 
     await tryToShowControls();
 
+    const getVideoTime = async () => {
+      const display = page.locator('div.mvp-time-display');
+      let [start, end] = (await display.textContent({ timeout: 1000 }))!.split(
+        '/'
+      );
+
+      return [start.trim(), end.trim()];
+    };
+
+    const [start, end] = await getVideoTime();
+
+    console.log('play progress: ', start, end);
+
     // check video play over?
-    const display = page.locator('div.mvp-time-display');
-    const pgs = (await display.textContent({ timeout: 1000 }))!.split('/');
-
-    console.log('play progress: ', pgs[0].trim(), pgs[1].trim());
-
-    if (pgs[0].trim() == pgs[1].trim() && pgs[1].trim() != '00:00') {
+    if (start == end && end != '00:00') {
       return;
     }
 
@@ -43,7 +54,6 @@ export default class OnlineVideoProc implements Processor {
       console.log('volume off');
     }
 
-    await tryToShowControls();
     try {
       await page.locator('.mvp-player-quality-menu').hover({ timeout: 500 });
       // 改变视频画质省流
@@ -53,13 +63,26 @@ export default class OnlineVideoProc implements Processor {
       console.warn('no have quality menu', 'skip');
     }
 
-    await tryToShowControls();
     // 点击播放
     const p = page.locator('.mvp-toggle-play.mvp-first-btn-margin');
     await expect(p).toBeVisible({ timeout: 500 });
     await p.click();
 
-    console.log('play');
+    const prcsBar = this.createProgress(
+      this.timeToMinutes(start) * 60,
+      this.timeToMinutes(end) * 60
+    );
+
+    let preCur = (await getVideoTime())[0];
+    const timer = setInterval(async () => {
+      const cur = (await getVideoTime())[0];
+      if (preCur != cur) {
+        prcsBar.tick(
+          (this.timeToMinutes(cur) - this.timeToMinutes(preCur)) * 60
+        );
+        preCur = cur;
+      }
+    }, 1000);
 
     //一直等待直到视频播放完毕
     await page.waitForFunction(
@@ -80,7 +103,25 @@ export default class OnlineVideoProc implements Processor {
         return cur == end;
       },
       Date.now(),
-      { timeout: 0, polling: 500 }
+      { timeout: 0, polling: 1000 }
     );
+
+    clearInterval(timer);
+  }
+
+  private createProgress(cur: number, end: number) {
+    const bar = new ProgressBar('playing [:bar] :percent', {
+      complete: '=',
+      incomplete: ' ',
+      total: end,
+      width: 30
+    });
+    bar.tick(cur);
+    return bar;
+  }
+
+  private timeToMinutes(timeString: string) {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return hours * 60 + minutes;
   }
 }
