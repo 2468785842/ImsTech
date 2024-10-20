@@ -3,11 +3,11 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import 'source-map-support/register.js';
 
 import * as Activity from './Activity.js';
-import * as Processor from './course/Processor.js';
-import * as Search from './course/Search.js';
+import * as Processor from './course/processor.js';
+import * as Search from './course/search.js';
 import { waitForSPALoaded } from './utils.js';
 import Config from './config.js';
-import { login } from './Login.js';
+import { login } from './login.js';
 
 (async () => {
   const browser = await chromium.use(StealthPlugin()).launch({
@@ -37,7 +37,7 @@ import { login } from './Login.js';
       console.log(
         course.moduleName,
         course.syllabusName ?? '',
-        course.title,
+        course.activityName,
         course.progress,
         `: ${i}/${courses.length}`
       );
@@ -52,7 +52,7 @@ import { login } from './Login.js';
         continue;
       }
 
-      if (processor.condition && !processor.condition(course.progress)) {
+      if (processor.condition && !processor.condition(course)) {
         continue;
       }
 
@@ -61,7 +61,7 @@ import { login } from './Login.js';
         tLoc = tLoc.locator(`#${course.syllabusId}`);
       }
       const t = (await tLoc
-        .getByText(course.title, { exact: true })
+        .getByText(course.activityName, { exact: true })
         .elementHandle())!;
 
       if ((await t.getAttribute('class'))!.lastIndexOf('locked') != -1) {

@@ -1,15 +1,15 @@
 import { Page } from 'playwright';
 
-import { Processor } from '../Processor.js';
+import { Processor } from '../processor.js';
 
-import { CourseProgress, CourseType } from '../Search.js';
+import { CourseInfo, CourseType } from '../search.js';
 
 export default class ForumProc implements Processor {
   name: CourseType = 'forum';
 
-  condition(progress: CourseProgress): boolean {
+  condition(info: CourseInfo): boolean {
     // ...就算发帖还是完成一半的状态...可能是国开系统bug...我们直接跳过
-    return progress != 'part';
+    return info.progress != 'part';
   }
 
   async exec(page: Page) {

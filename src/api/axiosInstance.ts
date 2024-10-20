@@ -1,6 +1,6 @@
 import { Axios } from 'axios';
 import { API_BASE_URL } from '../config.js';
-import { restoreCookies } from '../Login.js';
+import { restoreCookies } from '../login.js';
 
 const axiosInstance = new Axios({
   baseURL: `${API_BASE_URL}/api`,

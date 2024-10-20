@@ -3,7 +3,7 @@ import { Page } from 'playwright';
 
 import ProgressBar from 'progress';
 
-import { CourseType, Processor } from '../Processor.js';
+import { CourseType, Processor } from '../processor.js';
 
 import { waitForSPALoaded } from '../../utils.js';
 

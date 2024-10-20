@@ -1,13 +1,13 @@
 import { Page } from 'playwright';
 
-import { Processor } from '../Processor.js';
+import { Processor } from '../processor.js';
 
-import { CourseProgress, CourseType } from '../Search.js';
-import Exam from '../../api/exam.js';
+import { CourseInfo, CourseProgress, CourseType } from '../search.js';
+import Exam from '../../api/Exam.js';
 
 export default class ExamProc implements Processor {
   name: CourseType = 'exam';
-  condition() {
+  condition(info: CourseInfo) {
     return false;
   }
 

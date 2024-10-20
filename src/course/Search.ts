@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { Locator, Page } from 'playwright';
 import * as Activity from '../Activity.js';
 import { waitForSPALoaded } from '../utils.js';
-import { COURSE_TYPE, CourseType } from './Processor.js';
+import { COURSE_TYPE, CourseType } from './processor.js';
 import Config from '../config.js';
 
 type CourseProgress = 'full' | 'part' | 'none';
@@ -13,7 +13,8 @@ type CourseInfo = {
   syllabusId: string | null;
   syllabusName: string | null;
   type: CourseType;
-  title: string;
+  activityId: number;
+  activityName: string;
   progress: CourseProgress;
 };
 
@@ -25,9 +26,9 @@ async function getModulesData(locs: Array<Locator>) {
         .locator('span.module-name')
         .textContent())!.trim();
 
-      const syllabuses = await module.locator('div.course-syllabus').all();
+      const syllabusesLoc = await module.locator('div.course-syllabus').all();
 
-      return { moduleId, moduleName, module, syllabuses };
+      return { moduleId, moduleName, module, syllabusesLoc };
     })
   );
 }
@@ -36,26 +37,31 @@ async function getSyllabusesData(moduleData: {
   moduleId: string;
   moduleName: string;
   module: Locator;
-  syllabuses: Locator[];
+  syllabusesLoc: Locator[];
 }) {
-  const { moduleId, moduleName, module, syllabuses } = moduleData;
+  const { moduleId, moduleName, module, syllabusesLoc } = moduleData;
 
-  if (syllabuses.length != 0) {
-    return await Promise.all(
-      syllabuses.map(async (syllabus) => {
-        const syllabusId = (await syllabus.getAttribute('id'))!;
-        const syllabusName = (await syllabus
-          .locator('div.syllabus-title')
-          .textContent())!.trim();
+  //多个课程组
+  const getActivitiesList = (loc: Locator) =>
+    loc.locator('div.learning-activities:not(.ng-hide)').all();
 
-        //多个课程组
-        const activities = await syllabus
-          .locator('div.learning-activities:not(.ng-hide)')
-          .all();
+  if (syllabusesLoc.length != 0) {
+    const syllabusesData = syllabusesLoc.map(async (syllabusLoc) => {
+      const syllabusId = (await syllabusLoc.getAttribute('id'))!;
+      const syllabusName = (await syllabusLoc
+        .locator('div.syllabus-title')
+        .textContent())!.trim();
 
-        return { moduleId, moduleName, syllabusId, syllabusName, activities };
-      })
-    );
+      return {
+        moduleId,
+        moduleName,
+        syllabusId,
+        syllabusName,
+        activitiesLocList: await getActivitiesList(syllabusLoc)
+      };
+    });
+
+    return Promise.all(syllabusesData);
   }
 
   return [
@@ -64,9 +70,7 @@ async function getSyllabusesData(moduleData: {
       moduleName,
       syllabusId: null,
       syllabusName: null,
-      activities: await module
-        .locator('div.learning-activities:not(.ng-hide)')
-        .all()
+      activitiesLocList: await getActivitiesList(module)
     }
   ];
 }
@@ -79,7 +83,6 @@ async function getUncompletedCourses(
 
   await page.getByText(activityInfo.title).click();
   await page.waitForURL(RegExp(`^${Config.urls.course()}.*`));
-  // await page.waitForTimeout(100);
   await page.locator('input[type="checkbox"]').setChecked(true);
 
   await page
@@ -89,90 +92,89 @@ async function getUncompletedCourses(
       console.warn('没有全部展开按钮,可能已经展开?');
     });
 
-  // 也许有更高效的方法,逆向出加载函数然后监听?而不是等待2s
-  // await page.waitForTimeout(2000);
-  // await page.waitForLoadState('networkidle')
   await waitForSPALoaded(page);
   const modules = await page.locator('div.module').all();
   const modulesData = await getModulesData(modules);
+
   const syllabusesData = (
     await Promise.all(modulesData.map(getSyllabusesData))
   ).flat();
 
-  const coursesData = (
-    await Promise.all(
-      syllabusesData.map(async (syllabus) => {
-        const { moduleId, moduleName, syllabusId, syllabusName, activities } =
-          syllabus;
-        // 课程
-        return (
-          await Promise.all(
-            activities.map(async (activity) => {
-              const useableActivities = await activity
-                .locator('div.learning-activity:not(.ng-hide)')
-                .all();
-              return (
-                await Promise.all(
-                  useableActivities.map(async (useableActivity) => {
-                    // some stuff is finished, so is empty, we will skip
-                    if (
-                      '' ==
-                      (await useableActivity
-                        .innerHTML({ timeout: 1000 })
-                        .catch(() => ''))
-                    )
-                      return [];
+  // some stuff is finished, so is empty, we will skip
+  const hasContentActivity = async (activity: Locator) => {
+    return (await activity.innerHTML({ timeout: 1000 }).catch(() => '')) != '';
+  };
 
-                    let courseInfo: CourseInfo = {
-                      moduleId,
-                      moduleName,
-                      syllabusId,
-                      syllabusName,
-                      type: await checkActivityType(useableActivity),
-                      title: '',
-                      progress: 'none'
-                    };
+  // 过滤无内容和隐藏的活动 useableActivities
+  const activitiesSync = syllabusesData.flatMap((syllabus) =>
+    syllabus.activitiesLocList.map(async (activitiesLoc) => {
+      const activityLocList = await activitiesLoc
+        .locator('div.learning-activity:not(.ng-hide)')
+        .all();
 
-                    const complete = useableActivity.locator(
-                      'activity-completeness-bar div.completeness'
-                    );
+      const aLocList = activityLocList.filter(hasContentActivity);
 
-                    // 需要注意的是, 页面元素有些是动态加载的, 这里必须等足够长时间...
-                    // 但是我们通过判断 ngProgress 宽度, 现在不需要了等待很长时间了
-                    // 最多等1s
-                    let progress = await complete
-                      .getAttribute('class', { timeout: 1000 })
-                      .catch(() => 'none');
+      return aLocList.map(async (activityLoc) => ({
+        moduleId: syllabus.moduleId,
+        moduleName: syllabus.moduleName,
+        syllabusId: syllabus.syllabusId,
+        syllabusName: syllabus.moduleName,
+        type: await getActivityType(activityLoc),
+        activityId: await getActivityId(activityLoc),
+        activityName: await getActivityName(activityLoc),
+        activityLoc
+      }));
+    })
+  );
 
-                    // check course progress
-                    courseInfo.progress = (['full', 'part', 'none'].find((v) =>
-                      progress?.includes(v)
-                    ) || 'none') as CourseProgress;
+  const activities = (await Promise.all(activitiesSync)).flat();
 
-                    const titleElt = useableActivity.locator(
-                      'div.activity-title a.title'
-                    );
-                    const title = await titleElt.textContent();
-                    if (!title) {
-                      console.log(useableActivity);
-                      throw 'error: course title is undefined';
-                    }
-                    courseInfo.title = title;
-                    return courseInfo;
-                  })
-                )
-              ).flat();
-            })
-          )
-        ).flat();
-      })
-    )
-  ).flat();
+  // 最后填充进度和活动名
+  const coursesData = activities.map(async (activity) => {
+    const activ = await activity;
+    const { activityLoc } = activ;
 
-  return coursesData;
+    const complete = activityLoc.locator(
+      'activity-completeness-bar div.completeness'
+    );
+
+    // 需要注意的是, 页面元素有些是动态加载的, 这里必须等足够长时间...
+    // 但是我们通过判断 ngProgress 宽度, 现在不需要了等待很长时间了
+    // 最多等1s
+    const progress = await complete
+      .getAttribute('class', { timeout: 1000 })
+      .catch(() => 'none');
+
+    const getProgress = () =>
+      (['full', 'part', 'none'].find((v) => progress?.includes(v)) ||
+        'none') as CourseProgress;
+
+    const courseData: typeof activ & {
+      activityLoc: any;
+    } & CourseInfo = {
+      ...activ,
+      progress: getProgress()
+    };
+
+    delete courseData.activityLoc;
+
+    return courseData;
+  });
+
+  return Promise.all(coursesData);
 }
 
-async function checkActivityType(activity: Locator): Promise<CourseType> {
+async function getActivityName(activity: Locator) {
+  const titleElt = activity.locator('div.activity-title a.title');
+  const title = await titleElt.textContent();
+  if (!title) {
+    console.log(activity);
+    throw 'error: course title is undefined';
+  }
+  return title;
+}
+
+async function getActivityType(activity: Locator): Promise<CourseType> {
   const icon = activity.locator('div.activity-icon>i.font');
   const cls = await icon.getAttribute('class');
   const prefix = 'font-syllabus-';
@@ -185,4 +187,11 @@ async function checkActivityType(activity: Locator): Promise<CourseType> {
   return 'unknown';
 }
 
-export { CourseProgress, CourseType, getUncompletedCourses };
+async function getActivityId(activity: Locator): Promise<number> {
+  const id = (await activity.getAttribute('id'))!;
+  const prefix = 'learning-activity-';
+  return Number(id.substring(id.indexOf(prefix) + 1));
+}
+
+export type { CourseProgress, CourseType, CourseInfo };
+export { getUncompletedCourses };

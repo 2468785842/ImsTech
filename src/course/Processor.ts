@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
-import { CourseProgress } from './Search.js';
+import { CourseProgress, CourseInfo } from './search.js';
 
 type StrategyFunc = (page: Page, progress: CourseProgress) => Promise<void>;
 
@@ -58,7 +58,7 @@ interface Processor {
    * @param progress 课程进度
    * @returns
    */
-  condition?: (progress: CourseProgress) => boolean;
+  condition?: (progress: CourseInfo) => boolean;
   /**
    * 处理课程逻辑
    * @param page 当前页面对象
