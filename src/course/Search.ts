@@ -102,56 +102,58 @@ async function getUncompletedCourses(
 
   // some stuff is finished, so is empty, we will skip
   const hasContentActivity = async (activity: Locator) => {
-    return (await activity.innerHTML({ timeout: 1000 }).catch(String)) != '';
+    return (await activity.innerHTML({ timeout: 1000 }).catch(() => '')) != '';
   };
 
   // 过滤无内容和隐藏的活动 useableActivities
-  const activitiesSync = syllabusesData.flatMap((syllabus) =>
+  const activitiesAsync = syllabusesData.flatMap((syllabus) =>
     syllabus.activitiesLocList.map(async (activitiesLoc) => {
       const activityLocList = await activitiesLoc
         .locator('div.learning-activity:not(.ng-hide)')
         .all();
 
-      const aLocList = activityLocList.filter(hasContentActivity);
-
-      return aLocList.map(async (activityLoc) => ({
-        moduleId: syllabus.moduleId,
-        moduleName: syllabus.moduleName,
-        syllabusId: syllabus.syllabusId,
-        syllabusName: syllabus.moduleName,
-        type: await getActivityType(activityLoc),
-        activityId: await getActivityId(activityLoc),
-        activityName: await getActivityName(activityLoc),
-        activityLoc
-      }));
+      return (
+        await Promise.all(
+          activityLocList.map(async (activityLoc) =>
+            (await hasContentActivity(activityLoc))
+              ? {
+                  moduleId: syllabus.moduleId,
+                  moduleName: syllabus.moduleName,
+                  syllabusId: syllabus.syllabusId,
+                  syllabusName: syllabus.moduleName,
+                  type: await getActivityType(activityLoc),
+                  activityId: await getActivityId(activityLoc),
+                  activityName: await getActivityName(activityLoc),
+                  activityLoc
+                }
+              : []
+          )
+        )
+      ).flat();
     })
   );
 
-  const activities = (await Promise.all(activitiesSync)).flat();
+  const activities = (await Promise.all(activitiesAsync)).flat();
 
   // 最后填充进度和活动名
   const coursesData = activities.map(async (activity) => {
-    const activ = await activity;
-    const { activityLoc } = activ;
-
-    const complete = activityLoc.locator(
+    const complete = activity.activityLoc.locator(
       'activity-completeness-bar div.completeness'
     );
 
-    // 需要注意的是, 页面元素有些是动态加载的, 这里必须等足够长时间...
-    // 但是我们通过判断 ngProgress 宽度, 现在不需要了等待很长时间了
-    // 最多等1s
+    // completeness part
     const progress = await complete
       .getAttribute('class', { timeout: 1000 })
-      .then((v) => v ?? 'none')
+      .then(String)
       .catch(() => 'none');
 
-    const resolveList: CourseProgress[] = ['full', 'part', 'none'];
-    const resolveProgress = resolveList.find(progress.includes) ?? 'none';
+    const resolveList: CourseProgress[] = ['full', 'part'];
+    const resolveProgress =
+      resolveList.find((v) => progress.includes(v)) ?? 'none';
 
     const courseData: {
       activityLoc: any;
-    } & CourseInfo = { ...activ, progress: resolveProgress };
+    } & CourseInfo = { ...activity, progress: resolveProgress };
 
     delete courseData.activityLoc;
 
@@ -187,7 +189,7 @@ async function getActivityType(activity: Locator): Promise<CourseType> {
 async function getActivityId(activity: Locator): Promise<number> {
   const id = (await activity.getAttribute('id'))!;
   const prefix = 'learning-activity-';
-  return Number(id.substring(id.indexOf(prefix) + 1));
+  return Number(id.substring(prefix.length));
 }
 
 export type { CourseProgress, CourseType, CourseInfo };

@@ -9,6 +9,7 @@ export default class ExamProc implements Processor {
   name: CourseType = 'exam';
 
   async condition(info: CourseInfo) {
+    console.log(info.activityId);
     const exam = new Exam(info.activityId);
     const r = await exam.get();
     console.log('标题: ', r['title']);
@@ -18,8 +19,5 @@ export default class ExamProc implements Processor {
     return false;
   }
 
-  async exec(page: Page) {
-
-  }
-
+  async exec(page: Page) {}
 }

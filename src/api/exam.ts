@@ -14,15 +14,15 @@ export default class {
 
   async get() {
     const response = await Api.get(this.getBaseUrl());
-    console.assert(response.status != 200, response.statusText);
+    console.log('status', response.status);
     return JSON.parse(response.data);
   }
 
   /**
    * 获取课程概述
-   * 
+   *
    * @param forAllSubjects 是否获取所有课程?
-   * 
+   *
    * @return
    * ```json
    * {
@@ -58,7 +58,7 @@ export default class {
       { params: { forAllSubjects } }
     );
 
-    console.assert(response.status != 200, response.statusText);
+    console.log('status', response.status);
 
     const subjects: Array<{
       has_audio: boolean;
