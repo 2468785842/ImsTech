@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Locator, Page } from 'playwright';
-import * as Activity from '../Activity.js';
+import * as Activity from '../activity.js';
 import { waitForSPALoaded } from '../utils.js';
 import { getCourseType, CourseType, hasCourseType } from './processor.js';
 import Config from '../config.js';

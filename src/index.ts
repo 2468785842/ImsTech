@@ -2,7 +2,7 @@ import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import 'source-map-support/register.js';
 
-import * as Activity from './Activity.js';
+import * as Activity from './activity.js';
 import * as Processor from './course/processor.js';
 import * as Search from './course/search.js';
 import { waitForSPALoaded } from './utils.js';
