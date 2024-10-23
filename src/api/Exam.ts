@@ -9,9 +9,9 @@ import { newAxiosInstance } from './axiosInstance.js';
 //    ....
 //   二、判断题
 //    ....
-type SubjectType = 'true_or_false' | 'text' | 'single_selection';
-type SubjectId = number;
-type OptionId = number;
+export type SubjectType = 'true_or_false' | 'text' | 'single_selection';
+export type SubjectId = number;
+export type OptionId = number;
 
 export default class {
   #activityId: number;

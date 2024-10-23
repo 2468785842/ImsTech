@@ -4,26 +4,64 @@ import { Processor } from '../processor.js';
 
 import { CourseInfo, CourseType } from '../search.js';
 import Exam from '../../api/Exam.js';
+import AIModel from '../../ai/AIModel.js';
 
 export default class ExamProc implements Processor {
   name: CourseType = 'exam';
 
   #courseInfo?: CourseInfo;
 
+  static AI = AIModel.init();
+
   async condition(info: CourseInfo) {
     this.#courseInfo = info;
     console.log(info.activityId);
     const exam = new Exam(info.activityId);
-    return await this.isSupport(exam);
+    return (await this.isSupport(exam)) && !!AIModel.instance;
   }
 
-  async exec(page: Page) {
+  async exec(_: Page) {
     console.assert(this.#courseInfo, 'error course info is null');
+    console.assert(AIModel.instance!, 'error ai model is null');
 
-    if(this.#courseInfo) {
-      this.#courseInfo
-    }
+    if (!this.#courseInfo) return;
 
+    const exam = new Exam(this.#courseInfo.activityId);
+    const { exam_paper_instance_id, subjects } = await exam.getDistribute();
+    const questions = subjects.filter((subject) => subject.type != 'text');
+
+    const submissionId = await exam.submissionsStorge(
+      exam_paper_instance_id,
+      questions.map((subject) => subject.id),
+      subjects.length
+    );
+
+    const answerOptionIds = await Promise.all(
+      questions.map(async (question) => {
+        const resp = await AIModel.instance!.getResponse(
+          question.type,
+          question.description,
+          question.options.map(
+            (option, index) =>
+              `${index} ${document.createElement(option.content).innerText!}`
+          )
+        );
+
+        return {
+          subjectId: question.id,
+          answerOptionIds: [question.options[resp].id]
+        };
+      })
+    );
+
+    const r = exam.submissions(
+      exam_paper_instance_id,
+      submissionId,
+      answerOptionIds,
+      subjects.length
+    );
+
+    console.log('exam submissions result:', r);
   }
 
   private async isSupport(exam: Exam): Promise<boolean> {

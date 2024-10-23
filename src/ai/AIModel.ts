@@ -3,9 +3,8 @@ import 'dotenv/config';
 import { exit } from 'process';
 import chalk from 'chalk';
 
-import { expect } from '@playwright/test';
-
 import { input } from '../utils.js';
+import { SubjectType } from '../api/Exam.js';
 
 class AIModel {
   static async init(agree: boolean = false): Promise<AIModel | null> {
@@ -49,27 +48,113 @@ class AIModel {
     })!;
   }
 
-  async getResponse(prompt: string) {
-    expect(this.#openai, '意外错误 OpenAI 客户端为 null').not.toBeNull();
+  async getResponse(
+    type: SubjectType,
+    description: string,
+    options: string[]
+  ): Promise<number> {
+    console.assert(this.#openai, '意外错误 OpenAI 客户端为 null');
+
+    let content: OpenAI.Chat.ChatCompletion | null | undefined;
+
+    const strategies: Partial<
+      Record<
+        SubjectType,
+        (description: string, options: string[]) => Promise<typeof content>
+      >
+    > = {
+      single_selection: this.singleSelection,
+      true_or_false: this.trueOrFalse
+    };
+
+    if (!strategies[type]) {
+      console.log('不支持的问题类型:', type);
+      exit();
+    }
+
+    content = await strategies[type].bind(this)(description, options);
+
+    // 检查返回的 choices 是否为空
+    if (!content || content.choices.length === 0) {
+      console.error('AI 意料之外的错误：没有返回任何答案');
+      exit();
+    }
+
+    // 提取并解析 AI 返回的答案
+    const response = content.choices[0].message.content?.trim() ?? '';
+    const answerMatch = response[0]; // 确保只匹配 1-4 的数字
+
+    if (!answerMatch) {
+      console.error('AI 返回的答案格式无效:', response);
+      exit();
+    }
+
+    if (Number(answerMatch) > options.length) {
+      console.error('AI 回答序号超出答案序号:', response);
+      exit();
+    }
+
+    return Number(answerMatch); // 确保只返回匹配到的数字
+  }
+
+  async trueOrFalse(description: string, options: string[]) {
+    const questionContent = `
+      请回答以下判断题，并只返回正确答案的序号：
+        题目：${description}
+        选项：
+        ${options.map((option, index) => `${index}. ${option}`).join('\n')}
+    `;
+
+    const systemConstraint = `
+      你将回答判断题。
+      只返回正确答案的序号(${options.map((_, i) => i).join(',')})。
+      严格选择一个正确答案的数字作为输出。
+    `;
+
+    // console.log(questionContent);
+    // console.log(systemConstraint);
+
     const content: OpenAI.Chat.ChatCompletion =
       await this.#openai!.chat.completions.create({
         messages: [
-          {
-            role: 'system',
-            content:
-              '你将回答选择题，且只返回正确答案的序号(1, 2, 3, 4)。请确保根据国家开放大学的形势与政策课程为依据，并严格选择一个正确答案的序号作为输出。'
-          },
-          {
-            role: 'user',
-            content: '请回答以下选择题，并只返回正确答案的序号：'
-          },
-          { role: 'user', content: prompt },
-          { role: 'user', content: '请只返回正确答案的序号。' }
+          { role: 'system', content: systemConstraint },
+          { role: 'user', content: questionContent },
+          { role: 'user', content: '请只返回正确答案的序号' }
         ],
         model: this.#model
       });
-    console.log('AI Answer: ');
-    content.choices.forEach((choices) => console.log(choices.message.content));
+
+    return content;
+  }
+
+  async singleSelection(description: string, options: string[]) {
+    const questionContent = `
+      请回答以下选择题，并只返回正确答案的序号：
+        题目：${description}
+        选项：
+        ${options.map((option, index) => `${index}. ${option}`).join('\n')}
+    `;
+
+    const systemConstraint = `
+      你将回答选择题。
+      只返回正确答案的序号(${options.map((_, i) => i).join(',')})。
+      严格选择一个正确答案的数字作为输出。
+    `;
+
+    // console.log(questionContent);
+    // console.log(systemConstraint);
+
+    const content: OpenAI.Chat.ChatCompletion =
+      await this.#openai!.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemConstraint },
+          { role: 'user', content: questionContent },
+          { role: 'user', content: '请只返回正确答案的序号' }
+        ],
+        model: this.#model
+      });
+
+    return content;
   }
 
   #model: string;
