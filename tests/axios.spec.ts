@@ -2,6 +2,14 @@ import test, { expect } from '@playwright/test';
 import Exam from '../src/api/Exam.js';
 
 test('获取考试信息', async () => {
-  const r = await new Exam(60000512656).get();
-  console.log(r);
+  const exam = new Exam(60000512656);
+  
+  // const questionInfo = await exam.get();
+  // console.log('questionInfo', questionInfo);
+  // const distribute = await exam.getDistribute();
+  // console.log('distribute', distribute);
+  const subjectsSummary = await exam.getSubjectsSummary(true);
+  console.log('subjectsSummary', subjectsSummary);
+  // const submissions = await exam.getSubmissions();
+  // console.log('submissions', submissions);
 });
