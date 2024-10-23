@@ -25,6 +25,10 @@ function newAxiosInstance(url: string = '') {
         .map((cookie) => `${cookie.name}=${cookie.value}`)
         .join('; ');
 
+      if (config.method == 'post') {
+        config.headers['Content-Type'] = 'application/json';
+      }
+
       return config;
     },
     (error) => {

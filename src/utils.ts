@@ -14,13 +14,14 @@ import ReadLine from 'readline';
  *
  */
 async function waitForSPALoaded(page: Page) {
+  await page.waitForLoadState('domcontentloaded');
   await page.waitForFunction(() => {
     const progressBar: HTMLElement | null =
       document.querySelector('#ngProgress');
     return progressBar && progressBar.style.width === '0%'; // 判断进度是否完成
   });
 }
-  
+
 function input(query: string) {
   const rl = ReadLine.createInterface({
     input: process.stdin,
@@ -28,11 +29,11 @@ function input(query: string) {
   });
 
   return new Promise<string>((resolve) => {
-    rl.question(query, resolve);
-    rl.close();
+    rl.question(query, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
   });
 }
 
-export {
-  input, waitForSPALoaded
-};
+export { input, waitForSPALoaded };

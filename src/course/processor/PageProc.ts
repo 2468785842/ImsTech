@@ -20,7 +20,6 @@ export default class PageProc implements Processor {
     console.log(`scroll to ${scrollH}`);
 
     await waitForSPALoaded(page);
-    await page.waitForLoadState('networkidle');
 
     const iframeHtml = page
       .frameLocator('#previewContentInIframe')

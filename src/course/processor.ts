@@ -104,7 +104,7 @@ fs.readdirSync(scriptsFolder)
         const processor = new m.default();
         // 考虑添加动态类型检查?
         registerProcessor(processor);
-        console.log(`${file} loaded successfully`);
+        // console.log(`${file} loaded successfully`);
         // 可以根据需要使用加载的模块 'module'
       })
       .catch((e) => {

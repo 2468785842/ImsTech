@@ -8,18 +8,21 @@ import * as Search from './course/search.js';
 import { waitForSPALoaded } from './utils.js';
 import Config from './config.js';
 import { login } from './login.js';
+import AIModel from './ai/AIModel.js';
 
 (async () => {
+  // await AIModel.init();
+
   const browser = await chromium.use(StealthPlugin()).launch({
     executablePath: process.env._CHROME_DEV!,
     headless: false,
     slowMo: 1000 // 搞太快会限制访问
   });
+
   const page = await login(browser);
 
   await page.getByRole('link', { name: '我的课程' }).click();
   await waitForSPALoaded(page);
-  await page.waitForLoadState('networkidle');
 
   const listItems = await Activity.getActivities(page);
 

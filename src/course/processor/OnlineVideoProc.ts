@@ -7,6 +7,10 @@ import { CourseType, Processor } from '../processor.js';
 
 import { waitForSPALoaded } from '../../utils.js';
 
+// 以后考虑直接调用接口, 不播放视频
+// {start: 233, end: 286}
+// https://lms.ouchn.cn/api/course/activities-read/60005178469
+
 export default class OnlineVideoProc implements Processor {
   name: CourseType = 'online_video';
 
@@ -23,19 +27,22 @@ export default class OnlineVideoProc implements Processor {
     };
 
     await waitForSPALoaded(page);
-    await page.waitForLoadState('networkidle');
 
-    if (
-      (await page
-        .locator('activity-upload-resource-info-edit')
-        .innerHTML({ timeout: 1000 })
-        .catch(() => '')) == ''
-    ) {
-      console.log('未知原因加载失败: 跳过');
-      return;
-    }
+    // if (
+    //   (await page
+    //     .locator('activity-upload-resource-info-edit')
+    //     .innerHTML({ timeout: 1000 })
+    //     .catch(() => '')) == ''
+    // ) {
+    //   console.log('未知原因加载失败: 跳过');
+    //   return;
+    // }
 
     await tryToShowControls();
+
+    const playRate = 16
+    await page.evaluate(`document.getElementsByTagName("video")[0].playbackRate = ${playRate}`);
+    console.log(playRate, '倍速');
 
     const getVideoTime = async () => {
       const display = page.locator('div.mvp-time-display');
