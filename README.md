@@ -4,6 +4,7 @@
 
 ![image](https://github.com/user-attachments/assets/f4dc8d3c-af98-4520-96fc-f4dc16ef73d0)
 ```javascript
+// index.ts 文件中, 可以修改这段配置
 await chromium.use(StealthPlugin()).launch({
     executablePath: process.env._CHROME_DEV!,
     // true 不显示浏览器,
