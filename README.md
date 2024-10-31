@@ -3,7 +3,7 @@
 #### 需要注意: 点击太快会被检测异常行为, 需要等待一个小时
 
 ```javascript
-// 在 src/index.ts 中可以修改某些设置
+// index.ts 文件中, 可以修改这段配置
 await chromium.use(StealthPlugin()).launch({
     executablePath: process.env._CHROME_DEV!,
     // true 不显示浏览器,
