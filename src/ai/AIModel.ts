@@ -2,17 +2,19 @@ import OpenAI from 'openai';
 import 'dotenv/config';
 import { exit } from 'process';
 import chalk from 'chalk';
+import https from 'https';
 
-import { input } from '../utils.js';
+import { input, sleep } from '../utils.js';
 import { SubjectType } from '../api/Exam.js';
+import Config from '../config.js';
 
 class AIModel {
   static async init(agree: boolean = false): Promise<AIModel | null> {
     if (AIModel.instance) return AIModel.instance;
 
-    const api = process.env._API;
-    const key = process.env._KEY;
-    const model = process.env._MODEL;
+    const { _API: api, _KEY: key, _MODEL: model, _Qps } = process.env;
+
+    let Qps = Number(_Qps) || 1;
 
     console.log('检查AI设置:');
 
@@ -21,6 +23,7 @@ class AIModel {
     console.log('API', checkUnicode(api));
     console.log('Key', checkUnicode(key));
     console.log('Model', checkUnicode(model));
+    console.log('Qps:', Qps);
 
     if (!(api && key && model)) {
       console.log('不自动答题(AI未加载)');
@@ -36,23 +39,41 @@ class AIModel {
       }
     }
 
-    AIModel.instance = new AIModel(api, key, model);
+    AIModel.instance = new AIModel(api, key, model, Qps);
     return AIModel.instance;
   }
 
-  private constructor(api: string, key: string, model: string) {
+  private constructor(api: string, key: string, model: string, Qps: number) {
+    const proxy = Config.proxy;
     this.#model = model;
     this.#openai = new OpenAI({
       baseURL: api,
-      apiKey: key
+      apiKey: key,
+      httpAgent:
+        Config.proxy &&
+        new https.Agent({
+          host: proxy!.host,
+          port: proxy!.port,
+          rejectUnauthorized: false // 忽略 SSL 证书验证
+        })
     })!;
+    this.#Qps = Qps;
   }
 
   async getResponse(
     type: SubjectType,
     description: string,
     options: string[]
-  ): Promise<number> {
+  ): Promise<number[]> {
+
+    // 有时候会带序号, 需要过滤掉, 不然后面解析不了
+    options = options.map((option) => option.replace(/\d*/, ''));
+
+    while (this.#taskQueue.length != 0) {
+      await this.#taskQueue[this.#taskQueue.length - 1];
+      await sleep(1000 / this.#Qps + 300);
+    }
+
     console.assert(this.#openai, '意外错误 OpenAI 客户端为 null');
 
     let content: OpenAI.Chat.ChatCompletion | null | undefined;
@@ -64,7 +85,8 @@ class AIModel {
       >
     > = {
       single_selection: this.singleSelection,
-      true_or_false: this.trueOrFalse
+      true_or_false: this.trueOrFalse,
+      multiple_selection: this.multipleSelection
     };
 
     if (!strategies[type]) {
@@ -72,29 +94,50 @@ class AIModel {
       exit();
     }
 
-    content = await strategies[type].bind(this)(description, options);
+    const task = strategies[type].bind(this)(description, options);
+
+    this.#taskQueue.push(task);
+
+    content = await task;
+
+    this.#taskQueue.pop();
 
     // 检查返回的 choices 是否为空
     if (!content || content.choices.length === 0) {
-      console.error('AI 意料之外的错误：没有返回任何答案');
+      console.error(chalk.red('AI 意料之外的错误：没有返回任何答案'));
       exit();
     }
 
     // 提取并解析 AI 返回的答案
     const response = content.choices[0].message.content?.trim() ?? '';
-    const answerMatch = response[0]; // 确保只匹配 1-4 的数字
+    const answerIds = response
+      .replace(/[^\d\,]*/g, '')
+      .split(',')
+      .map(Number); // 确保只匹配 1-4 的数字
 
-    if (!answerMatch) {
-      console.error('AI 返回的答案格式无效:', response);
+    if (!answerIds || !answerIds.length) {
+      console.error(chalk.red('AI 返回的答案格式无效:'), response);
       exit();
     }
 
-    if (Number(answerMatch) > options.length) {
-      console.error('AI 回答序号超出答案序号:', response);
+    if (!answerIds.every((v) => Number.isInteger(v))) {
+      console.error(
+        chalk.red('无法解析 AI 回答:'),
+        response,
+        'parse:',
+        answerIds
+      );
       exit();
     }
 
-    return Number(answerMatch); // 确保只返回匹配到的数字
+    if (!answerIds.every((v) => v < options.length)) {
+      console.error(chalk.red('AI 回答序号超出答案序号:'), response);
+      exit();
+    }
+
+    console.log('AI 答案:', chalk.green(answerIds));
+
+    return answerIds; // 确保只返回匹配到的数字
   }
 
   async trueOrFalse(description: string, options: string[]) {
@@ -108,11 +151,10 @@ class AIModel {
     const systemConstraint = `
       你将回答判断题。
       只返回正确答案的序号(${options.map((_, i) => i).join(',')})。
-      严格选择一个正确答案的数字作为输出。
     `;
 
-    // console.log(questionContent);
-    // console.log(systemConstraint);
+    console.log(questionContent);
+    console.log(systemConstraint);
 
     const content: OpenAI.Chat.ChatCompletion =
       await this.#openai!.chat.completions.create({
@@ -136,13 +178,13 @@ class AIModel {
     `;
 
     const systemConstraint = `
-      你将回答选择题。
-      只返回正确答案的序号(${options.map((_, i) => i).join(',')})。
-      严格选择一个正确答案的数字作为输出。
+      你将回答选择题。只返回正确答案的序号(${options
+        .map((_, i) => i)
+        .join(',')})。
     `;
 
-    // console.log(questionContent);
-    // console.log(systemConstraint);
+    console.log(questionContent);
+    console.log(systemConstraint);
 
     const content: OpenAI.Chat.ChatCompletion =
       await this.#openai!.chat.completions.create({
@@ -157,8 +199,42 @@ class AIModel {
     return content;
   }
 
+  async multipleSelection(description: string, options: string[]) {
+    const questionContent = `
+      请回答以下多选题，并只返回正确答案的序号：
+        题目：${description}
+        选项：
+        ${options.map((option, index) => `${index}. ${option}`).join('\n')}
+    `;
+
+    const systemConstraint = `
+      你将回答多选题。
+      只返回正确答案的序号(${options.map((_, i) => i).join(',')})。
+    `;
+
+    console.log(questionContent);
+    console.log(systemConstraint);
+
+    const content: OpenAI.Chat.ChatCompletion =
+      await this.#openai!.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemConstraint },
+          { role: 'user', content: questionContent },
+          {
+            role: 'user',
+            content: '请只返回正确答案的序号使用逗号分割, 例如: 0,2,3'
+          }
+        ],
+        model: this.#model
+      });
+
+    return content;
+  }
+
   #model: string;
   #openai: OpenAI;
+  #Qps: number;
+  #taskQueue: Array<Promise<any>> = [];
 
   static instance?: AIModel;
 }

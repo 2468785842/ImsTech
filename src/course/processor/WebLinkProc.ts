@@ -9,7 +9,6 @@ export default class WebLinkProc implements Processor {
 
   async exec(page: Page) {
     await waitForSPALoaded(page);
-    // await page.waitForLoadState('networkidle');
     try {
       await page.getByText('观看回放').click({ timeout: 3000 });
     } catch {

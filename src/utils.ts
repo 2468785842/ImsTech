@@ -14,7 +14,9 @@ import ReadLine from 'readline';
  *
  */
 async function waitForSPALoaded(page: Page) {
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(500);
+  await page.waitForLoadState();
+  await page.waitForTimeout(500);
   await page.waitForFunction(() => {
     const progressBar: HTMLElement | null =
       document.querySelector('#ngProgress');
@@ -36,4 +38,8 @@ function input(query: string) {
   });
 }
 
-export { input, waitForSPALoaded };
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+export { input, waitForSPALoaded, sleep };

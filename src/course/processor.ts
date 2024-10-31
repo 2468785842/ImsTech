@@ -63,9 +63,9 @@ interface Processor {
    * 回调
    * 执行条件, true 执行 exec(...), 反之不执行
    * condition == null 同样执行 exec(...)
-   * @param progress 课程进度
+   * @param 课程信息
    */
-  condition?: (progress: CourseInfo) => Promise<boolean>;
+  condition?: (courseInfo: CourseInfo) => Promise<boolean>;
   /**
    * 处理课程逻辑
    * @param page 当前页面对象

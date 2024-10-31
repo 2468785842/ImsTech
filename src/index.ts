@@ -9,9 +9,11 @@ import { waitForSPALoaded } from './utils.js';
 import Config from './config.js';
 import { login } from './login.js';
 import AIModel from './ai/AIModel.js';
+import { format } from 'util';
+import chalk from 'chalk';
 
 (async () => {
-  // await AIModel.init();
+  await AIModel.init();
 
   const browser = await chromium.use(StealthPlugin()).launch({
     executablePath: process.env._CHROME_DEV!,
@@ -32,17 +34,23 @@ import AIModel from './ai/AIModel.js';
     console.log('-'.repeat(60));
     console.log(item.title, item.percent);
 
+    // 考试需要特殊处理
     const courses = (await Search.getUncompletedCourses(page, item)).filter(
-      (course) => course.progress != 'full'
+      (course) => course.progress != 'full' || course.type == 'exam'
     );
 
     for (const [i, course] of courses.entries()) {
       console.log(
-        course.moduleName,
-        course.syllabusName ?? '',
-        course.activityName,
-        course.progress,
-        `: ${i}/${courses.length}`
+        chalk.bgBlueBright(
+          format(
+            '%s %s %s %s : %d/%d',
+            course.syllabusName ?? course.moduleName,
+            course.activityName,
+            course.progress,
+            i,
+            courses.length
+          )
+        )
       );
 
       const processor = Processor.getProcessor(course.type);
@@ -80,7 +88,7 @@ import AIModel from './ai/AIModel.js';
       await t.click({ timeout: 5000 });
 
       await page.waitForURL(RegExp(`^${Config.urls.course()}.*`), {
-        timeout: 3000,
+        timeout: 30000,
         waitUntil: 'domcontentloaded'
       });
 

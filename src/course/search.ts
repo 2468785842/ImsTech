@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { Locator, Page } from 'playwright';
 import * as Activity from '../activity.js';
 import { waitForSPALoaded } from '../utils.js';
-import { getCourseType, CourseType, hasCourseType } from './processor.js';
+import { CourseType, hasCourseType } from './processor.js';
 import Config from '../config.js';
 
 type CourseProgress = 'full' | 'part' | 'none';
@@ -41,9 +41,9 @@ async function getSyllabusesData(moduleData: {
 }) {
   const { moduleId, moduleName, module, syllabusesLoc } = moduleData;
 
-  //多个课程组
-  const getActivitiesList = (loc: Locator) =>
-    loc.locator('div.learning-activities:not(.ng-hide)').all();
+  // 多个课程组, 如果有分数可能是考试, 我们需要在后面判断, 如果是满分就跳过, 这里先获取
+  const getActivitiesList = async (loc: Locator) =>
+    await loc.locator('div.learning-activities').all();
 
   if (syllabusesLoc.length != 0) {
     const syllabusesData = syllabusesLoc.map(async (syllabusLoc) => {
@@ -81,17 +81,22 @@ async function getUncompletedCourses(
 ): Promise<CourseInfo[]> {
   console.log('正在获取未完成的课程...');
 
+  await waitForSPALoaded(page);
+
   await page.getByText(activityInfo.title).click();
   await page.waitForURL(RegExp(`^${Config.urls.course()}.*`));
-  await page.locator('input[type="checkbox"]').setChecked(true);
+  await page.locator('input[type="checkbox"]').setChecked(false);
 
-  await page
-    .getByText('全部展开')
-    .click({ timeout: 500 })
-    .catch(() => {
-      console.warn('没有全部展开按钮,可能已经展开?');
-    });
+  if ((await page.getByText('全部收起').count()) == 0) {
+    await page
+      .getByText('全部展开')
+      .click({ timeout: 500 })
+      .catch(() => {
+        console.warn('没有全部展开按钮,可能已经展开?');
+      });
+  }
 
+  // 还需要加载一会, 无征兆
   await waitForSPALoaded(page);
   const modules = await page.locator('div.module').all();
   const modulesData = await getModulesData(modules);
@@ -105,11 +110,11 @@ async function getUncompletedCourses(
     return (await activity.innerHTML({ timeout: 1000 }).catch(() => '')) != '';
   };
 
-  // 过滤无内容和隐藏的活动 useableActivities
+  // 过滤无内容和隐藏的活动 usableActivities
   const activitiesAsync = syllabusesData.flatMap((syllabus) =>
     syllabus.activitiesLocList.map(async (activitiesLoc) => {
       const activityLocList = await activitiesLoc
-        .locator('div.learning-activity:not(.ng-hide)')
+        .locator('div.learning-activity')
         .all();
 
       return (

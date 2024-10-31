@@ -28,20 +28,22 @@ export default class OnlineVideoProc implements Processor {
 
     await waitForSPALoaded(page);
 
-    // if (
-    //   (await page
-    //     .locator('activity-upload-resource-info-edit')
-    //     .innerHTML({ timeout: 1000 })
-    //     .catch(() => '')) == ''
-    // ) {
-    //   console.log('未知原因加载失败: 跳过');
-    //   return;
-    // }
+    if (
+      (await page
+        .locator('video')
+        .innerHTML({ timeout: 1000 })
+        .catch(() => '')) == ''
+    ) {
+      console.log('未知原因加载失败: 跳过');
+      return;
+    }
 
     await tryToShowControls();
 
-    const playRate = 16
-    await page.evaluate(`document.getElementsByTagName("video")[0].playbackRate = ${playRate}`);
+    const playRate = 16;
+    await page.evaluate(
+      `document.getElementsByTagName("video")[0].playbackRate = ${playRate}`
+    );
     console.log(playRate, '倍速');
 
     const getVideoTime = async () => {

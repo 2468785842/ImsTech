@@ -1,19 +1,21 @@
 import { Axios, HttpStatusCode } from 'axios';
-import { API_BASE_URL } from '../config.js';
+import Config, { API_BASE_URL } from '../config.js';
 import { restoreCookies } from '../login.js';
 import { exit } from 'process';
 
 function newAxiosInstance(url: string = '') {
   if (url) url = '/' + url;
+
+  const proxy = Config.proxy;
+
   const axiosInstance = new Axios({
     baseURL: `${API_BASE_URL}/api${url}`,
     withCredentials: true,
-    timeout: 5000
-    // proxy: {
-    //   host: 'localhost',
-    //   port: 8888,
-    //   protocol: 'http'
-    // }
+    timeout: 20000,
+    proxy: proxy && {
+      ...proxy,
+      protocol: 'http'
+    }
   });
 
   axiosInstance.interceptors.request.use(
@@ -41,6 +43,7 @@ function newAxiosInstance(url: string = '') {
     switch (response.status) {
       case HttpStatusCode.Found:
       case HttpStatusCode.BadRequest:
+        console.error(response.data ?? response.data.message);
         console.warn('获取信息失败', '需要登陆?');
         exit();
     }
