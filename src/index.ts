@@ -43,7 +43,7 @@ import chalk from 'chalk';
       console.log(
         chalk.bgBlueBright(
           format(
-            '%s %s %s %s : %d/%d',
+            '%s %s %s : %d/%d',
             course.syllabusName ?? course.moduleName,
             course.activityName,
             course.progress,
@@ -85,7 +85,7 @@ import chalk from 'chalk';
         continue;
       }
 
-      await t.click({ timeout: 5000 });
+      await t.click();
 
       await page.waitForURL(RegExp(`^${Config.urls.course()}.*`), {
         timeout: 30000,

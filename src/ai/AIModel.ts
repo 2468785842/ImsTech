@@ -4,9 +4,10 @@ import { exit } from 'process';
 import chalk from 'chalk';
 import https from 'https';
 
-import { input, sleep } from '../utils.js';
+import { input } from '../utils.js';
 import { SubjectType } from '../api/Exam.js';
 import Config from '../config.js';
+import { sleep } from 'openai/core.js';
 
 class AIModel {
   static async init(agree: boolean = false): Promise<AIModel | null> {
@@ -65,7 +66,6 @@ class AIModel {
     description: string,
     options: string[]
   ): Promise<number[]> {
-
     // 有时候会带序号, 需要过滤掉, 不然后面解析不了
     options = options.map((option) => option.replace(/\d*/, ''));
 

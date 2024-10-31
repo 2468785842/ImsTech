@@ -1,3 +1,5 @@
+import { AxiosResponse } from 'axios';
+import { CourseType } from '../course/search.js';
 import { newAxiosInstance } from './axiosInstance.js';
 
 type ActivityType = 'learning_activities' | 'exams' | 'classrooms';
@@ -17,3 +19,22 @@ function getAllActivities(
     }
   });
 }
+
+/**
+ * 返回两个Cookie, 提交某些操作需要携带
+ * @param courseType 
+ * @param id 
+ * @returns BENSESSCC_TAG session
+ */
+function activitiesRead(courseType: CourseType, id: number) {
+  return new Promise<AxiosResponse>((resolve, reject) => {
+    // 限制 Qps
+    Api.post(`course/activities-read/${courseType}/${id}`)
+      .then((v) => setTimeout(() => resolve(v), 5000))
+      .catch(reject);
+  });
+}
+
+export default {
+  activitiesRead
+};

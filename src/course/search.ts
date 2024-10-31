@@ -81,11 +81,13 @@ async function getUncompletedCourses(
 ): Promise<CourseInfo[]> {
   console.log('正在获取未完成的课程...');
 
-  await waitForSPALoaded(page);
-
   await page.getByText(activityInfo.title).click();
   await page.waitForURL(RegExp(`^${Config.urls.course()}.*`));
+
+  await waitForSPALoaded(page);
   await page.locator('input[type="checkbox"]').setChecked(false);
+
+  await page.waitForLoadState('domcontentloaded');
 
   if ((await page.getByText('全部收起').count()) == 0) {
     await page
@@ -94,9 +96,9 @@ async function getUncompletedCourses(
       .catch(() => {
         console.warn('没有全部展开按钮,可能已经展开?');
       });
+    await page.waitForLoadState('domcontentloaded');
   }
 
-  // 还需要加载一会, 无征兆
   await waitForSPALoaded(page);
   const modules = await page.locator('div.module').all();
   const modulesData = await getModulesData(modules);

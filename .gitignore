@@ -7,3 +7,4 @@ package-lock.json
 
 .cookies.txt
 .idea/**
+.VSCodeCounter/**

@@ -6,6 +6,9 @@ import { CourseInfo, CourseType } from '../search.js';
 import Exam, { OptionId, SubjectId } from '../../api/Exam.js';
 import AIModel from '../../ai/AIModel.js';
 import { exit } from 'process';
+import { storeCookies } from '../../login.js';
+import course from '../../api/course.js';
+import chalk from 'chalk';
 
 export default class ExamProc implements Processor {
   name: CourseType = 'exam';
@@ -32,15 +35,22 @@ export default class ExamProc implements Processor {
     let rightQuestionOptions: Record<SubjectId, OptionId[]> = {};
 
     const pullQuestions = async () => {
-      const { exam_score, submissions } = await exam.getSubmissions();
+      let { exam_score, submissions } = await exam.getSubmissions();
 
-      console.assert(
-        exam_score != void 0,
-        '分数:',
-        exam_score,
-        '/',
-        this.#totalPoints
-      );
+      while (
+        submissions &&
+        !submissions.every((submission) => submission.score != null)
+      ) {
+        console.log('等待系统评分');
+        const t = await exam.getSubmissions();
+        exam_score = t.exam_score;
+        submissions = t.submissions;
+        await page.waitForTimeout(15000);
+      }
+
+      if (exam_score != void 0) {
+        console.log(`分数: ${exam_score}/${this.#totalPoints}`);
+      }
 
       if (exam_score == this.#totalPoints) {
         return null;
@@ -88,28 +98,51 @@ export default class ExamProc implements Processor {
       return {
         questions,
         examPaperInstanceId,
+        subjects,
         total: subjects.length
       };
     };
-
     // 过滤出所有问题
     let q = await pullQuestions();
 
-    for (let i = 0; q && i < 5; i++) {
-      // 随机等待, 一次性不能请求太多
-      await page.waitForTimeout(q.total * 500 + Math.random() * 5);
+    if (q) {
+      // need 'BENSESSCC_TAG' Cookie
+      const response = await course.activitiesRead(
+        this.name,
+        this.#courseInfo!.activityId
+      );
+      const cookies = response.headers['set-cookie'];
 
-      const { questions, examPaperInstanceId, total } = q;
+      if (!cookies) {
+        console.error(chalk.red('获取Cookie失败: 未知错误'));
+        exit();
+      }
+
+      exam.addCookies(
+        cookies.flatMap((cookie) => {
+          const raw = cookie.split(';');
+          const [k, v] = raw[0].split('=');
+          return { name: k, value: v };
+        })
+      );
+    }
+
+    for (let i = 0; q && i < 5; i++) {
+      const { questions, examPaperInstanceId, subjects, total } = q;
       // console.log('questions:', questions);
 
-      const submissionId = await exam.submissionsStorage();
+      const submissionId = await exam.submissionsStorage({
+        exam_paper_instance_id: examPaperInstanceId,
+        subjects
+      });
 
       const optionIds = await Promise.all(
         questions.map(async (question) => {
           if (question.id in rightQuestionOptions) {
             return {
               subjectId: question.id,
-              answerOptionIds: rightQuestionOptions[question.id]
+              answerOptionIds: rightQuestionOptions[question.id],
+              updatedAt: question.last_updated_at
             };
           }
 
@@ -124,10 +157,20 @@ export default class ExamProc implements Processor {
 
           return {
             subjectId: question.id,
-            answerOptionIds: resp.map((i) => question.options[i].id)
+            answerOptionIds: resp.map((i) => question.options[i].id),
+            updatedAt: question.last_updated_at
           };
         })
       );
+
+      const waitTime = total * 200 + Math.random() * 5 * 100;
+      // console.log('wait:', waitTime);
+      await page.waitForTimeout(waitTime);
+
+      if (!submissionId) {
+        console.log('意料之外的错误:', "can't get submissionId");
+        exit();
+      }
 
       const r = await exam.postSubmissions(
         examPaperInstanceId,
@@ -136,12 +179,15 @@ export default class ExamProc implements Processor {
         total
       );
 
-      console.log('exam submissions result:', r);
-
-      console.log('不是满分, 重新执行');
-
       q = await pullQuestions();
-      console.log('尝试次数:', i + 1);
+      if (q) {
+        console.log('不是满分, 重新执行');
+        console.log('尝试次数:', i + 1);
+
+        const waitTime = total * 3000;
+        console.log(waitTime / 1000, '秒后重新开始答题');
+        await page.waitForTimeout(waitTime);
+      }
     }
 
     // Debug
@@ -156,7 +202,7 @@ export default class ExamProc implements Processor {
   private async isSupport(exam: Exam): Promise<boolean> {
     const examInfo = await exam.get();
 
-    const { submit_times, total_points } = examInfo;
+    const { submit_times, submitted_times, total_points } = examInfo;
 
     this.#totalPoints = total_points;
 
@@ -164,11 +210,11 @@ export default class ExamProc implements Processor {
     console.log('标题:', examInfo['title']);
     console.log('成绩比例:', examInfo['score_percentage']);
     console.log('题目数:', examInfo['subjects_count']);
-    console.log('允许提交次数:', examInfo['submit_times']);
-    console.log('已经提交次数:', examInfo['submitted_times']);
+    console.log('允许提交次数:', submit_times);
+    console.log('已经提交次数:', submitted_times);
     console.log('总分:', total_points);
 
-    if (submit_times != 999) return false; // 可提交次数必须足够大, 因为AI答不准
+    if (submit_times != 999 || submit_times < submitted_times) return false; // 可提交次数必须足够大, 因为AI答不准
     // if (subjects_count > 4) return false; // 题目要少 不然 AI 不行的
 
     // check subject summary
@@ -178,7 +224,7 @@ export default class ExamProc implements Processor {
     const test = subjects
       .filter((v) => v.type != 'text')
       .every((v) =>
-        ['true_or_false', 'single_selection', 'multiple_selection'].includes(
+        ['true_or_false', 'single_selection' /*'multiple_selection'*/].includes(
           v.type
         )
       );

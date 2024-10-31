@@ -1,5 +1,8 @@
 import { Axios, HttpStatusCode } from 'axios';
 import { newAxiosInstance } from './axiosInstance.js';
+import Config, { API_BASE_URL } from '../config.js';
+import { Cookie, Page } from 'playwright';
+import { restoreCookies } from '../login.js';
 
 // true_or_false 判断题
 // single_selection 单选题
@@ -29,11 +32,24 @@ export default class {
   constructor(activityId: number) {
     this.#activityId = activityId;
     this.#axios = newAxiosInstance(`exams/${activityId}`);
+    // 为了过检测
+    this.#axios.defaults.headers.common[
+      'Referer'
+    ] = `${API_BASE_URL}/exam/${activityId}/subjects`;
+  }
+
+  addCookies(cookies: Array<{ name: string; value: string }>) {
+    console.log('Exam add Cookies:\n', cookies);
+
+    const headers = this.#axios.defaults.headers;
+    headers.common['Cookie'] = cookies
+      .map((cookie) => `${cookie.name}=${cookie.value}`)
+      .join('; ');
   }
 
   async get() {
     const response = await this.#axios.get('');
-    return JSON.parse(response.data);
+    return response.data;
   }
 
   /**
@@ -70,7 +86,7 @@ export default class {
         // sub_subjects: Array<any>;
         type: SubjectType;
       }>;
-    } = JSON.parse(response.data);
+    } = response.data;
 
     return subjectsSummary;
   }
@@ -111,11 +127,11 @@ export default class {
             exam_id: number;
             exam_type_text: string;
             id: SubjectId;
-            score: string;
+            score: string | null;
             submitted_at: string;
           }>
         | undefined;
-    } = JSON.parse(response.data);
+    } = response.data;
 
     return submissions;
   }
@@ -140,13 +156,15 @@ export default class {
         // _fixed: boolean
       };
       submission_score_data: Record<SubjectId, string>; // string is float
-    } = JSON.parse(response.data);
+    } = response.data;
 
     return submission;
   }
 
   /**
    * 获取题目描述
+   * 不能重复获取, 一次考试获取一次
+   * 只要一次验证错误这个就废了
    *
    * @return
    * ```json
@@ -188,6 +206,7 @@ export default class {
         // 题目组
         description: string; // 题目
         id: SubjectId;
+        last_updated_at: string; // ISO time
         options: Array<{
           // 可选答案
           content: string; // 答案描述
@@ -197,7 +216,7 @@ export default class {
         point: string; // 分数
         type: SubjectType;
       }>;
-    } = JSON.parse(response.data);
+    } = response.data;
 
     return distribute;
   }
@@ -205,25 +224,39 @@ export default class {
   /**
    * 提交存储, 当开始答题需要调用, 消耗一次答题机会
    * 只是相当于标记已经开始答题
+   * 只要一次验证错误这个就废了
    *
    * @see getDistribute
    *
    * @return 当你提交答案时需要带上 id
    */
-  async submissionsStorage(): Promise<number> {
-    let response = await this.#axios.get('submissions/storage');
+  async submissionsStorage(
+    distribute: Awaited<ReturnType<typeof this.getDistribute>>
+  ): Promise<number | undefined> {
+    const url = 'submissions/storage';
+    let response = await this.#axios.get(url).catch(() => void 0);
 
-    if (response.status == HttpStatusCode.NotFound) {
-      response = await this.#axios.post(
-        'submissions/storge',
-        JSON.stringify({
-          ...(await this.getDistribute()),
-          exam_submission_id: null
-        })
+    if (!response || response.status == HttpStatusCode.NotFound) {
+      const subjects = distribute.subjects.filter(
+        (subject) => subject.type != 'text'
       );
+
+      response = await this.#axios.post(url, {
+        exam_paper_instance_id: distribute.exam_paper_instance_id,
+        exam_submission_id: null,
+        subjects: subjects.map((subject) => ({
+          subject_id: subject.id,
+          subject_updated_at: subject.last_updated_at,
+          answer_option_ids: []
+        })),
+        progress: {
+          answered_num: 0,
+          total_subjects: distribute.subjects.length
+        }
+      });
     }
 
-    return JSON.parse(response.data)['id'];
+    return response?.data['id'];
   }
 
   /**
@@ -239,27 +272,25 @@ export default class {
     subjects: Array<{
       subjectId: SubjectId;
       answerOptionIds: OptionId[];
+      updatedAt: string;
     }>,
     totalSubjects: number
   ) {
-    const response = await this.#axios.post(
-      'submissions',
-      JSON.stringify({
-        exam_paper_instance_id: examPaperInstanceId,
-        exam_submission_id: examSubmissionId,
-        subjects: subjects.map((subject) => ({
-          subject_id: subject.subjectId,
-          answer_option_ids: subject.answerOptionIds,
-          subject_updated_at: new Date().toISOString()
-        })),
-        progress: {
-          answered_num: subjects.length,
-          total_subjects: totalSubjects
-        },
-        reason: 'user'
-      })
-    );
+    const response = await this.#axios.post('submissions', {
+      exam_paper_instance_id: examPaperInstanceId,
+      exam_submission_id: examSubmissionId,
+      progress: {
+        answered_num: subjects.length,
+        total_subjects: totalSubjects
+      },
+      reason: 'user',
+      subjects: subjects.map((subject) => ({
+        subject_id: subject.subjectId,
+        answer_option_ids: subject.answerOptionIds,
+        subject_updated_at: subject.updatedAt
+      }))
+    });
 
-    return JSON.parse(response.data);
+    return response.data;
   }
 }

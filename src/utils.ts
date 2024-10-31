@@ -14,7 +14,6 @@ import ReadLine from 'readline';
  *
  */
 async function waitForSPALoaded(page: Page) {
-  await page.waitForTimeout(500);
   await page.waitForLoadState();
   await page.waitForTimeout(500);
   await page.waitForFunction(() => {
@@ -38,8 +37,4 @@ function input(query: string) {
   });
 }
 
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
-
-export { input, waitForSPALoaded, sleep };
+export { input, waitForSPALoaded };
