@@ -139,10 +139,6 @@ export default class {
   /**
    * 获取指定考试记录信息
    * @param id 考试记录id
-   *
-   * @return
-   *
-   *
    */
   async getSubmission(id: SubjectId) {
     const response = await this.#axios.get(`submissions/${id}`);

@@ -34,76 +34,8 @@ export default class ExamProc implements Processor {
     // 问题正确解集合, 奖池会累加!! :)
     let rightQuestionOptions: Record<SubjectId, OptionId[]> = {};
 
-    const pullQuestions = async () => {
-      let { exam_score, submissions } = await exam.getSubmissions();
-
-      while (
-        submissions &&
-        !submissions.every((submission) => submission.score != null)
-      ) {
-        console.log('等待系统评分');
-        const t = await exam.getSubmissions();
-        exam_score = t.exam_score;
-        submissions = t.submissions;
-        await page.waitForTimeout(15000);
-      }
-
-      if (exam_score != void 0) {
-        console.log(`分数: ${exam_score}/${this.#totalPoints}`);
-      }
-
-      if (exam_score == this.#totalPoints) {
-        return null;
-      }
-
-      // 确实还不知道, 要不要重新获取问题, 有可能不重新获取亦可以? 可以复用?
-      const { exam_paper_instance_id: examPaperInstanceId, subjects } =
-        await exam.getDistribute();
-
-      let questions = subjects.filter((subject) => subject.type != 'text');
-
-      // TODO: 我们需要总结所有的考试结果, 因为有些考试是随机题目
-      // 目前是获取最高分数
-      const maxSubmission = submissions?.find(
-        (v) => v.score == String(exam_score)
-      );
-
-      // 答过题, 获取已知答案
-      if (maxSubmission) {
-        const { submission_data, submission_score_data } =
-          await exam.getSubmission(maxSubmission.id);
-
-        // 收集正确答案
-        submission_data.subjects.forEach(
-          ({ subject_id, answer_option_ids }) => {
-            if (Number(submission_score_data[subject_id]) != 0) {
-              rightQuestionOptions[subject_id] = answer_option_ids;
-            }
-          }
-        );
-
-        // 需要过滤错误答案
-        questions = questions.map((question) => ({
-          ...question,
-          options: question.options.filter(
-            (option) =>
-              !(
-                option.id in submission_score_data &&
-                Number(submission_score_data[option.id]) == 0
-              )
-          )
-        }));
-      }
-
-      return {
-        questions,
-        examPaperInstanceId,
-        subjects,
-        total: subjects.length
-      };
-    };
     // 过滤出所有问题
-    let q = await pullQuestions();
+    let q = await this.pullQuestions(exam, page, rightQuestionOptions);
 
     if (q) {
       // need 'BENSESSCC_TAG' Cookie
@@ -138,7 +70,9 @@ export default class ExamProc implements Processor {
 
       const optionIds = await Promise.all(
         questions.map(async (question) => {
-          if (question.id in rightQuestionOptions) {
+          if (rightQuestionOptions[question.id]) {
+            console.log('skip question:', question.id);
+
             return {
               subjectId: question.id,
               answerOptionIds: rightQuestionOptions[question.id],
@@ -150,9 +84,7 @@ export default class ExamProc implements Processor {
           const resp = await AIModel.instance!.getResponse(
             question.type,
             question.description,
-            question.options.map(
-              (option, index) => `${index} ${option.content}`
-            )
+            question.options.map(({ content }) => content)
           );
 
           return {
@@ -179,7 +111,8 @@ export default class ExamProc implements Processor {
         total
       );
 
-      q = await pullQuestions();
+      q = await this.pullQuestions(exam, page, rightQuestionOptions);
+
       if (q) {
         console.log('不是满分, 重新执行');
         console.log('尝试次数:', i + 1);
@@ -199,6 +132,94 @@ export default class ExamProc implements Processor {
     this.#exam = undefined;
   }
 
+  private async pullQuestions(
+    exam: Exam,
+    page: Page,
+    rightQuestionOptions: Record<SubjectId, OptionId[]>
+  ) {
+    let { exam_score, submissions } = await exam.getSubmissions();
+
+    while (
+      submissions &&
+      !submissions.every((submission) => submission.score != null)
+    ) {
+      console.log('等待系统评分');
+      const t = await exam.getSubmissions();
+      exam_score = t.exam_score;
+      submissions = t.submissions;
+      await page.waitForTimeout(10000);
+    }
+
+    if (exam_score != void 0) {
+      // 获取最新的结果
+      let newestIndex = 0;
+      for (let i = 1; submissions && i < submissions.length; i++) {
+        if (
+          new Date(submissions[newestIndex].submitted_at).getTime() <
+          new Date(submissions[i].submitted_at).getTime()
+        ) {
+          newestIndex = i;
+        }
+      }
+
+      const curScore = submissions?.[newestIndex]?.score ?? '?';
+
+      console.log(
+        '分数(最新/最高/总分):',
+        `${curScore}/${exam_score}/${this.#totalPoints}`
+      );
+    }
+
+    if (exam_score == this.#totalPoints) {
+      return null;
+    }
+
+    // 确实还不知道, 要不要重新获取问题, 有可能不重新获取亦可以? 可以复用?
+    const { exam_paper_instance_id: examPaperInstanceId, subjects } =
+      await exam.getDistribute();
+
+    let questions = subjects.filter((subject) => subject.type != 'text');
+
+    // TODO: 我们需要总结所有的考试结果, 因为有些考试是随机题目
+    // 目前是获取最高分数
+    const maxSubmission = submissions?.find(
+      (v) => v.score && Number(v.score) == exam_score
+    );
+
+    // 答过题, 获取已知答案
+    if (maxSubmission) {
+      const { submission_data, submission_score_data } =
+        await exam.getSubmission(maxSubmission.id);
+
+      // 收集正确答案
+      submission_data.subjects.forEach(({ subject_id, answer_option_ids }) => {
+        if (Number(submission_score_data[subject_id]) != 0) {
+          rightQuestionOptions[subject_id] = answer_option_ids;
+        }
+      });
+
+      // 需要过滤错误答案
+      questions = questions.map((question) => ({
+        ...question,
+        options: question.options.filter((option) => {
+          // 满足任意一个边界条件, 不过滤
+          // ssd == null 此答案正确性未知
+          // ssd != 0 此问题回答正确
+          // 上面条件取反, 就是 filter 的判定条件
+          const ssd = submission_score_data[option.id]; // BTW. ssd 不是指硬盘
+          return !ssd || Number(ssd) == 0;
+        })
+      }));
+    }
+
+    return {
+      questions,
+      examPaperInstanceId,
+      subjects,
+      total: subjects.length
+    };
+  }
+
   private async isSupport(exam: Exam): Promise<boolean> {
     const examInfo = await exam.get();
 
@@ -214,7 +235,7 @@ export default class ExamProc implements Processor {
     console.log('已经提交次数:', submitted_times);
     console.log('总分:', total_points);
 
-    if (submit_times != 999 || submit_times < submitted_times) return false; // 可提交次数必须足够大, 因为AI答不准
+    if (submit_times != 999 || submit_times <= submitted_times) return false; // 可提交次数必须足够大, 因为AI答不准
     // if (subjects_count > 4) return false; // 题目要少 不然 AI 不行的
 
     // check subject summary

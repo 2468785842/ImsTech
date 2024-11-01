@@ -40,7 +40,8 @@ function newAxiosInstance(url: string = '') {
     config.headers['dnt'] = '1';
     config.headers['sec-gpc'] = '1';
 
-    const defaultCookie = (axiosInstance.defaults.headers['Cookie'] ?? '') as string;
+    const defaultCookie = (axiosInstance.defaults.headers['Cookie'] ??
+      '') as string;
 
     config.headers['Cookie'] =
       defaultCookie +
@@ -63,7 +64,7 @@ function newAxiosInstance(url: string = '') {
     switch (response.status) {
       case HttpStatusCode.Found:
       case HttpStatusCode.BadRequest:
-        console.error(response.data ?? response.data.message);
+        console.error(response.data.message ?? response.data);
         console.warn('获取信息失败', '需要登陆?');
         exit();
     }

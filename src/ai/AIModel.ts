@@ -8,6 +8,7 @@ import { input } from '../utils.js';
 import { SubjectType } from '../api/Exam.js';
 import Config from '../config.js';
 import { sleep } from 'openai/core.js';
+import { format } from 'util';
 
 class AIModel {
   static async init(agree: boolean = false): Promise<AIModel | null> {
@@ -66,8 +67,11 @@ class AIModel {
     description: string,
     options: string[]
   ): Promise<number[]> {
-    // 有时候会带序号, 需要过滤掉, 不然后面解析不了
-    options = options.map((option) => option.replace(/\d*/, ''));
+
+    if (options.length < 2) {
+      console.error(chalk.red('意料之外的错误, 问题选项数量 < 2 ???'));
+      exit();
+    }
 
     while (this.#taskQueue.length != 0) {
       await this.#taskQueue[this.#taskQueue.length - 1];
@@ -141,17 +145,11 @@ class AIModel {
   }
 
   async trueOrFalse(description: string, options: string[]) {
-    const questionContent = `
-      请回答以下判断题，并只返回正确答案的序号：
-        题目：${description}
-        选项：
-        ${options.map((option, index) => `${index}. ${option}`).join('\n')}
-    `;
-
-    const systemConstraint = `
-      你将回答判断题。
-      只返回正确答案的序号(${options.map((_, i) => i).join(',')})。
-    `;
+    const [questionContent, systemConstraint] = this.constraintTemplate(
+      '判断题',
+      description,
+      options
+    );
 
     console.log(questionContent);
     console.log(systemConstraint);
@@ -170,18 +168,11 @@ class AIModel {
   }
 
   async singleSelection(description: string, options: string[]) {
-    const questionContent = `
-      请回答以下选择题，并只返回正确答案的序号：
-        题目：${description}
-        选项：
-        ${options.map((option, index) => `${index}. ${option}`).join('\n')}
-    `;
-
-    const systemConstraint = `
-      你将回答选择题。只返回正确答案的序号(${options
-        .map((_, i) => i)
-        .join(',')})。
-    `;
+    const [questionContent, systemConstraint] = this.constraintTemplate(
+      '选择题',
+      description,
+      options
+    );
 
     console.log(questionContent);
     console.log(systemConstraint);
@@ -200,17 +191,11 @@ class AIModel {
   }
 
   async multipleSelection(description: string, options: string[]) {
-    const questionContent = `
-      请回答以下多选题，并只返回正确答案的序号：
-        题目：${description}
-        选项：
-        ${options.map((option, index) => `${index}. ${option}`).join('\n')}
-    `;
-
-    const systemConstraint = `
-      你将回答多选题。
-      只返回正确答案的序号(${options.map((_, i) => i).join(',')})。
-    `;
+    const [questionContent, systemConstraint] = this.constraintTemplate(
+      '多选题',
+      description,
+      options
+    );
 
     console.log(questionContent);
     console.log(systemConstraint);
@@ -222,13 +207,42 @@ class AIModel {
           { role: 'user', content: questionContent },
           {
             role: 'user',
-            content: '请只返回正确答案的序号使用逗号分割, 例如: 0,2,3'
+            content: '请只返回正确答案的序号使用逗号分割, 例如: 0,2'
           }
         ],
         model: this.#model
       });
 
     return content;
+  }
+
+  constraintTemplate(type: string, description: string, options: string[]) {
+    return [
+      this.questionContentTemplate(type, description, options),
+      this.systemConstraintTemplate(type, options)
+    ];
+  }
+
+  questionContentTemplate(
+    type: string,
+    description: string,
+    options: string[]
+  ) {
+    const questionContent = format(
+      '%s\n%s\n%s\n%s',
+      `请回答以下${type}，并只返回正确答案的序号：`,
+      `题目：${description}`,
+      '选项：',
+      `${options.map((option, index) => `\t${index}. ${option}`).join('\n')}`
+    );
+    return questionContent;
+  }
+
+  systemConstraintTemplate(type: string, options: string[]) {
+    const systemConstraint = `你将回答${type}。只返回正确答案的序号(${options
+      .map((_, i) => i)
+      .join(',')})。`;
+    return systemConstraint;
   }
 
   #model: string;
