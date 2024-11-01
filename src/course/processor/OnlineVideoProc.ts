@@ -40,7 +40,8 @@ export default class OnlineVideoProc implements Processor {
 
     await tryToShowControls();
 
-    const playRate = 16;
+    //设置 8 倍速，过快加载不出来视频
+    const playRate = 8;
     await page.evaluate(
       `document.getElementsByTagName("video")[0].playbackRate = ${playRate}`
     );
