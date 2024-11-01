@@ -12,6 +12,8 @@ export default class Material implements Processor {
       await pdf.click();
       await page.waitForLoadState();
       await page.locator('#file-previewer .header > a.close').click();
+      //放置点击过快 延迟1.5秒
+      new Promise(resolve => setTimeout(resolve,1500))
     }
   }
 }

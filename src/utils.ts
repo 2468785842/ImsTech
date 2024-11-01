@@ -1,4 +1,4 @@
-import { Page } from 'playwright';
+import {Page} from 'playwright';
 import ReadLine from 'readline';
 
 /**
@@ -14,27 +14,30 @@ import ReadLine from 'readline';
  *
  */
 async function waitForSPALoaded(page: Page) {
-  await page.waitForLoadState();
-  await page.waitForTimeout(500);
-  await page.waitForFunction(() => {
-    const progressBar: HTMLElement | null =
-      document.querySelector('#ngProgress');
-    return progressBar && progressBar.style.width === '0%'; // 判断进度是否完成
-  });
+    await page.waitForLoadState();
+    await page.waitForTimeout(500);
+    await page.waitForFunction(() => {
+        const progressBar: HTMLElement | null =
+            document.querySelector('#ngProgress');
+        return progressBar && progressBar.style.width === '0%'; // 判断进度是否完成
+    });
 }
 
 function input(query: string) {
-  const rl = ReadLine.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  return new Promise<string>((resolve) => {
-    rl.question(query, (answer) => {
-      rl.close();
-      resolve(answer);
+    const rl = ReadLine.createInterface({
+        input: process.stdin,
+        output: process.stdout
     });
-  });
+
+    return new Promise<string>((resolve) => {
+        rl.question(query, (answer) => {
+            rl.close();
+            resolve(answer);
+        });
+    });
 }
 
-export { input, waitForSPALoaded };
+export {input, waitForSPALoaded};
+export const Sleep = (ms: number) => {
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
