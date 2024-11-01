@@ -10,7 +10,10 @@ await chromium.use(StealthPlugin()).launch({
     // 当你登陆过一次存了cookie可以开启,
     // cookie存在项目根目录下的 .cookie.txt 文件中
     headless: true,
-    slowMo: 1000 // 点击速率, 搞太快会限制访问
+    slowMo: 1000, // 点击速率, 搞太快会限制访问
+    // 最新Chrome不支持旧的headless, 需要添加以下两行代码,覆盖设置
+    // ignoreDefaultArgs: ['--headless=old'],
+    // args: ['--headless=new']
   });
 ```
 
@@ -71,4 +74,4 @@ _PROXY_PORT=8080
   - webkit: 无
   - chromium:
     - 将浏览器最小化,有时候会导致不加载页面,获取不到课程
-      - 解决办法: 如果需要后台运行, 可以设置无头模式
+      - 解决办法: 如果需要后台运行, 使用windows的`虚拟桌面`

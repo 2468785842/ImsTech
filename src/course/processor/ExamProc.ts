@@ -6,7 +6,6 @@ import { CourseInfo, CourseType } from '../search.js';
 import Exam, { OptionId, SubjectId } from '../../api/Exam.js';
 import AIModel from '../../ai/AIModel.js';
 import { exit } from 'process';
-import { storeCookies } from '../../login.js';
 import course from '../../api/course.js';
 import chalk from 'chalk';
 
@@ -15,27 +14,33 @@ export default class ExamProc implements Processor {
 
   #courseInfo?: CourseInfo;
   #totalPoints: number = 0;
-  #exam?: Exam;
 
   async condition(info: CourseInfo) {
     this.#courseInfo = info;
     console.log(info.activityId);
-    this.#exam = new Exam(info.activityId);
-    return (await this.isSupport(this.#exam!)) && !!AIModel.instance;
+    const exam = new Exam(info.activityId);
+    return !!AIModel.instance && (await this.isSupport(exam));
   }
 
   async exec(page: Page) {
     console.assert(this.#courseInfo, 'error course info is null');
     console.assert(AIModel.instance, 'error ai model is null');
-    console.assert(this.#exam, '意料之外的错误, 实例化类失败?');
 
-    const exam = this.#exam!;
+    const exam = new Exam(this.#courseInfo!.activityId);
+
+    // 问题错误解集合
+    const wrongQuestionOptions: Record<SubjectId, OptionId[] | undefined> = {};
 
     // 问题正确解集合, 奖池会累加!! :)
-    let rightQuestionOptions: Record<SubjectId, OptionId[]> = {};
+    const rightQuestionOptions: Record<SubjectId, OptionId[] | undefined> = {};
 
     // 过滤出所有问题
-    let q = await this.pullQuestions(exam, page, rightQuestionOptions);
+    let q = await this.pullQuestions(
+      exam,
+      page,
+      rightQuestionOptions,
+      wrongQuestionOptions
+    );
 
     if (q) {
       // need 'BENSESSCC_TAG' Cookie
@@ -70,12 +75,22 @@ export default class ExamProc implements Processor {
 
       const optionIds = await Promise.all(
         questions.map(async (question) => {
+          // 正确解集合中已有答案
           if (rightQuestionOptions[question.id]) {
             console.log('skip question:', question.id);
 
             return {
               subjectId: question.id,
-              answerOptionIds: rightQuestionOptions[question.id],
+              answerOptionIds: rightQuestionOptions[question.id]!,
+              updatedAt: question.last_updated_at
+            };
+          }
+
+          // 只有一个选项, 我们可以肯定它是对的
+          if (question.options.length == 1) {
+            return {
+              subjectId: question.id,
+              answerOptionIds: [question.options[0].id],
               updatedAt: question.last_updated_at
             };
           }
@@ -111,7 +126,12 @@ export default class ExamProc implements Processor {
         total
       );
 
-      q = await this.pullQuestions(exam, page, rightQuestionOptions);
+      q = await this.pullQuestions(
+        exam,
+        page,
+        rightQuestionOptions,
+        wrongQuestionOptions
+      );
 
       if (q) {
         console.log('不是满分, 重新执行');
@@ -123,19 +143,16 @@ export default class ExamProc implements Processor {
       }
     }
 
-    // Debug
-    if (this.#courseInfo!.progress != 'full') exit();
-
     // 可复用的, 需要清除
     this.#courseInfo = undefined;
     this.#totalPoints = 0;
-    this.#exam = undefined;
   }
 
   private async pullQuestions(
     exam: Exam,
     page: Page,
-    rightQuestionOptions: Record<SubjectId, OptionId[]>
+    rightQuestionOptions: Record<SubjectId, OptionId[] | undefined>,
+    wrongQuestionOptions: Record<SubjectId, OptionId[] | undefined>
   ) {
     let { exam_score, submissions } = await exam.getSubmissions();
 
@@ -199,17 +216,39 @@ export default class ExamProc implements Processor {
       });
 
       // 需要过滤错误答案
-      questions = questions.map((question) => ({
-        ...question,
-        options: question.options.filter((option) => {
-          // 满足任意一个边界条件, 不过滤
-          // ssd == null 此答案正确性未知
-          // ssd != 0 此问题回答正确
-          // 上面条件取反, 就是 filter 的判定条件
-          const ssd = submission_score_data[option.id]; // BTW. ssd 不是指硬盘
-          return !ssd || Number(ssd) == 0;
-        })
-      }));
+      questions = questions.map((question) => {
+        const score = Number(submission_score_data[question.id]);
+
+        // 我们已经回答正确了, TODO: 如果是多选题需要修改此处逻辑
+        // 直接返回就行了, 后面做处理
+        if (score != 0) {
+          return question;
+        }
+
+        const wqo = wrongQuestionOptions;
+
+        // 回答错误的选项需要过滤
+        const options = question.options
+          .filter((option) => !wqo[question.id]?.find((id) => id == option.id))
+          .filter((option) => {
+            const { answer_option_ids } = submission_data.subjects.find(
+              (pre) => pre.subject_id == question.id
+            )!;
+
+            // 需要添加错误解集合
+            return !answer_option_ids.find((v) => v == option.id);
+          });
+
+        // 将还不知道的选项除外, 都是错误的
+        wqo[question.id] = question.options.flatMap((option) =>
+          options.find((opt) => opt.id == option.id) ? [] : option.id
+        );
+
+        console.log('options:', options);
+        console.log('wqo:', wqo[question.id]);
+
+        return { ...question, options };
+      });
     }
 
     return {

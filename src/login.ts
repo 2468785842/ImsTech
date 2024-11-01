@@ -26,6 +26,8 @@ async function login(browser: Browser) {
   const page =
     context.pages().length == 0 ? await context.newPage() : context.pages()[0];
 
+  await page.focus('html');
+
   await page.goto(Config.urls.home(), { timeout: 1000 * 60 * 10 });
 
   if (!RegExp(`^${Config.urls.login()}.*`).test(page.url())) {
