@@ -28,7 +28,7 @@ export default class OnlineVideoProc implements Processor {
 
     await waitForSPALoaded(page);
 
-    if (
+    /*if (
       (await page
         .locator('video')
         .innerHTML({ timeout: 1000 })
@@ -36,7 +36,7 @@ export default class OnlineVideoProc implements Processor {
     ) {
       console.log('未知原因加载失败: 跳过');
       return;
-    }
+    }*/
 
     await tryToShowControls();
 
@@ -135,7 +135,7 @@ export default class OnlineVideoProc implements Processor {
       total: end,
       width: 30,
       clear: true,
-      callback: () => console.log('play finished')
+      callback: () => console.log('play finished'),
     });
     bar.tick(cur);
     return bar;
