@@ -88,6 +88,9 @@ export default class ExamProc implements Processor {
 
           // 只有一个选项, 我们可以肯定它是对的
           if (question.options.length == 1) {
+
+            console.log('推断出答案:', question.id);
+
             return {
               subjectId: question.id,
               answerOptionIds: [question.options[0].id],
@@ -137,7 +140,7 @@ export default class ExamProc implements Processor {
         console.log('不是满分, 重新执行');
         console.log('尝试次数:', i + 1);
 
-        const waitTime = total * 3000;
+        const waitTime = total * 2000;
         console.log(waitTime / 1000, '秒后重新开始答题');
         await page.waitForTimeout(waitTime);
       }

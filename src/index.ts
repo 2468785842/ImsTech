@@ -17,10 +17,10 @@ import chalk from 'chalk';
 
   const browser = await chromium.use(StealthPlugin()).launch({
     executablePath: process.env._CHROME_DEV!,
-    headless: true,
+    headless: false,
     slowMo: 1000, // 搞太快会限制访问
-    ignoreDefaultArgs: ['--headless=old'],
-    args: ['--headless=new']
+    // ignoreDefaultArgs: ['--headless=old'],
+    // args: ['--headless=new']
   });
 
   const page = await login(browser);
