@@ -53,10 +53,6 @@ function newAxiosInstance(url: string = '') {
         )
         .join('; ');
 
-    if (config.method == 'post') {
-      config.headers['Content-Type'] = 'application/json';
-    }
-
     return config;
   });
 

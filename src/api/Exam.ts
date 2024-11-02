@@ -1,4 +1,4 @@
-import { Axios, HttpStatusCode } from 'axios';
+import { Axios, AxiosResponse, HttpStatusCode } from 'axios';
 import { newAxiosInstance } from './axiosInstance.js';
 import Config, { API_BASE_URL } from '../config.js';
 import { Cookie, Page } from 'playwright';
@@ -115,12 +115,17 @@ export default class {
    * ```
    */
   async getSubmissions() {
-    const response = await this.#axios.get('submissions');
+    const response = await this.#axios
+      .get('submissions')
+      .catch((resp: AxiosResponse) => {
+        if (resp.status == 404) return { data: {} };
+        throw resp.statusText;
+      });
 
     const submissions: {
-      exam_final_score: null | number;
+      exam_final_score: number | undefined | null;
       exam_score: number | undefined;
-      exam_score_rule: string;
+      exam_score_rule: string | undefined;
       submissions:
         | Array<{
             created_at: string;

@@ -6,8 +6,8 @@ import * as Activity from './activity.js';
 import * as Processor from './course/processor.js';
 import * as Search from './course/search.js';
 import { waitForSPALoaded } from './utils.js';
-import Config from './config.js';
-import { login } from './login.js';
+import Config, { API_BASE_URL } from './config.js';
+import { filterCookies, login, storeCookies } from './login.js';
 import AIModel from './ai/AIModel.js';
 import { format } from 'util';
 import chalk from 'chalk';
@@ -24,6 +24,20 @@ import chalk from 'chalk';
   });
 
   const page = await login(browser);
+
+  // https://lms.ouchn.cn/user/index 返回会携带 WAF Cookie
+  const cs = await page.evaluate(
+    async () => await (window as any).cookieStore.getAll()
+  );
+
+  // HWWAFSESID HWWAFSESTIME; 华为云 WAF 防护, 每次登陆都会更新
+  // session; 会话Token
+  await storeCookies(
+    filterCookies(cs, ['session']).map((cookie) => ({
+      ...cookie,
+      domain: API_BASE_URL.substring('https://'.length)
+    }))
+  );
 
   await page.getByRole('link', { name: '我的课程' }).click();
   await waitForSPALoaded(page);
@@ -45,7 +59,7 @@ import chalk from 'chalk';
       console.log(
         chalk.bgBlueBright(
           format(
-            '%s %s %s : %d/%d',
+            '%s %s %s %s : %d/%d',
             course.moduleName,
             course.syllabusName ?? '',
             course.activityName,
