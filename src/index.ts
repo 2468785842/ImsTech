@@ -90,6 +90,7 @@ import chalk from 'chalk';
       }
 
       const t = (await tLoc
+        .locator(`#learning-activity-${course.activityId}`)
         .getByText(course.activityName, { exact: true })
         .elementHandles())!;
 
