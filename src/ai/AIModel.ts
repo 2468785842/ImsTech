@@ -113,7 +113,9 @@ class AIModel {
 
     // 提取并解析 AI 返回的答案
     const response = content.choices[0].message.content?.trim() ?? '';
-    const answerIds = response.split('\n').map((id) => Number(id.trim()[0])); // 确保只匹配 1-4 的数字
+    const answerIds = response
+      .split('\n')
+      .map((id) => Number(id.match(/\d+/)?.[0]?.trim()?.[0])); // 确保只匹配 1-4 的数字
 
     if (!answerIds || !answerIds.length) {
       console.error(chalk.red('AI 返回的答案格式无效:'), response);

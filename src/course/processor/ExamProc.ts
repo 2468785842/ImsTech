@@ -8,6 +8,7 @@ import AIModel from '../../ai/AIModel.js';
 import { exit } from 'process';
 import course from '../../api/course.js';
 import chalk from 'chalk';
+import { parseDOMText } from '../../utils.js';
 
 export default class ExamProc implements Processor {
   name: CourseType = 'exam';
@@ -88,7 +89,6 @@ export default class ExamProc implements Processor {
 
           // 只有一个选项, 我们可以肯定它是对的
           if (question.options.length == 1) {
-
             console.log('推断出答案:', question.id);
 
             return {
@@ -101,8 +101,12 @@ export default class ExamProc implements Processor {
           // 找不到的问AI
           const resp = await AIModel.instance!.getResponse(
             question.type,
-            question.description,
-            question.options.map(({ content }) => content)
+            await parseDOMText(page, question.description),
+            await Promise.all(
+              question.options.map(
+                async ({ content }) => await parseDOMText(page, content)
+              )
+            )
           );
 
           return {

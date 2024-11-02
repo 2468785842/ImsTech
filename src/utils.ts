@@ -37,4 +37,12 @@ function input(query: string) {
   });
 }
 
-export { input, waitForSPALoaded };
+function parseDOMText(page: Page, str: string) {
+  return page.evaluate((str) => {
+    const div = document.createElement('div');
+    div.innerHTML = str;
+    return div.innerText;
+  }, str);
+}
+
+export { input, waitForSPALoaded, parseDOMText };
