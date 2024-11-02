@@ -67,7 +67,6 @@ class AIModel {
     description: string,
     options: string[]
   ): Promise<number[]> {
-
     if (options.length < 2) {
       console.error(chalk.red('意料之外的错误, 问题选项数量 < 2 ???'));
       exit();
@@ -114,10 +113,7 @@ class AIModel {
 
     // 提取并解析 AI 返回的答案
     const response = content.choices[0].message.content?.trim() ?? '';
-    const answerIds = response
-      .replace(/[^\d\,]*/g, '')
-      .split(',')
-      .map(Number); // 确保只匹配 1-4 的数字
+    const answerIds = response.split('\n').map((id) => Number(id.trim()[0])); // 确保只匹配 1-4 的数字
 
     if (!answerIds || !answerIds.length) {
       console.error(chalk.red('AI 返回的答案格式无效:'), response);
@@ -207,7 +203,7 @@ class AIModel {
           { role: 'user', content: questionContent },
           {
             role: 'user',
-            content: '请只返回正确答案的序号使用逗号分割, 例如: 0,2'
+            content: '请只返回正确答案的序号使用换行符分割, 例如: 0\n2\n3'
           }
         ],
         model: this.#model
