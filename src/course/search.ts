@@ -127,7 +127,7 @@ async function getUncompletedCourses(
                   moduleId: syllabus.moduleId,
                   moduleName: syllabus.moduleName,
                   syllabusId: syllabus.syllabusId,
-                  syllabusName: syllabus.moduleName,
+                  syllabusName: syllabus.syllabusName,
                   type: await getActivityType(activityLoc),
                   activityId: await getActivityId(activityLoc),
                   activityName: await getActivityName(activityLoc),
@@ -148,7 +148,7 @@ async function getUncompletedCourses(
       'activity-completeness-bar div.completeness'
     );
 
-    // completeness part
+    // 完成进度
     const progress = await complete
       .getAttribute('class', { timeout: 1000 })
       .then(String)
@@ -175,7 +175,7 @@ async function getActivityName(activity: Locator) {
   const title = await titleElt.textContent();
   if (!title) {
     console.log(activity);
-    throw 'error: course title is undefined';
+    throw 'course title is undefined';
   }
   return title;
 }

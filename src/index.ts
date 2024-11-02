@@ -18,7 +18,7 @@ import chalk from 'chalk';
   const browser = await chromium.use(StealthPlugin()).launch({
     executablePath: process.env._CHROME_DEV!,
     headless: false,
-    slowMo: 1000, // 搞太快会限制访问
+    slowMo: 1000 // 搞太快会限制访问
     // ignoreDefaultArgs: ['--headless=old'],
     // args: ['--headless=new']
   });
@@ -46,7 +46,8 @@ import chalk from 'chalk';
         chalk.bgBlueBright(
           format(
             '%s %s %s : %d/%d',
-            course.syllabusName ?? course.moduleName,
+            course.moduleName,
+            course.syllabusName ?? '',
             course.activityName,
             course.progress,
             i + 1,
