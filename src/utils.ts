@@ -1,5 +1,5 @@
-import {Page} from 'playwright';
-import ReadLine from 'readline';
+import { Page } from "playwright";
+import ReadLine from "readline";
 
 /**
  * 因为 vue 动态加载, 上方使用了 ngProgess 库显示进度
@@ -14,27 +14,27 @@ import ReadLine from 'readline';
  *
  */
 async function waitForSPALoaded(page: Page) {
-    await page.waitForLoadState();
-    await page.waitForTimeout(500);
-    await page.waitForFunction(() => {
-        const progressBar: HTMLElement | null =
-            document.querySelector('#ngProgress');
-        return progressBar && progressBar.style.width === '0%'; // 判断进度是否完成
-    });
+  await page.waitForLoadState();
+  await page.waitForTimeout(500);
+  await page.waitForFunction(() => {
+    const progressBar: HTMLElement | null =
+      document.querySelector("#ngProgress");
+    return progressBar && progressBar.style.width === "0%"; // 判断进度是否完成
+  });
 }
 
 function input(query: string) {
-    const rl = ReadLine.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
+  const rl = ReadLine.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
 
-    return new Promise<string>((resolve) => {
-        rl.question(query, (answer) => {
-            rl.close();
-            resolve(answer);
-        });
+  return new Promise<string>((resolve) => {
+    rl.question(query, (answer) => {
+      rl.close();
+      resolve(answer);
     });
+  });
 }
 
-export {input, waitForSPALoaded};
+export { input, waitForSPALoaded };
