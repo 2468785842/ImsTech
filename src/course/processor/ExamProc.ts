@@ -40,14 +40,14 @@ export default class ExamProc implements Processor {
       exam,
       page,
       rightQuestionOptions,
-      wrongQuestionOptions
+      wrongQuestionOptions,
     );
 
     if (q) {
       // need 'BENSESSCC_TAG' Cookie
       const response = await course.activitiesRead(
         this.name,
-        this.#courseInfo!.activityId
+        this.#courseInfo!.activityId,
       );
       const cookies = response.headers['set-cookie'];
 
@@ -61,7 +61,7 @@ export default class ExamProc implements Processor {
           const raw = cookie.split(';');
           const [k, v] = raw[0].split('=');
           return { name: k, value: v };
-        })
+        }),
       );
     }
 
@@ -71,7 +71,7 @@ export default class ExamProc implements Processor {
 
       const submissionId = await exam.submissionsStorage({
         exam_paper_instance_id: examPaperInstanceId,
-        subjects
+        subjects,
       });
 
       const optionIds = await Promise.all(
@@ -83,7 +83,7 @@ export default class ExamProc implements Processor {
             return {
               subjectId: question.id,
               answerOptionIds: rightQuestionOptions[question.id]!,
-              updatedAt: question.last_updated_at
+              updatedAt: question.last_updated_at,
             };
           }
 
@@ -94,7 +94,7 @@ export default class ExamProc implements Processor {
             return {
               subjectId: question.id,
               answerOptionIds: [question.options[0].id],
-              updatedAt: question.last_updated_at
+              updatedAt: question.last_updated_at,
             };
           }
 
@@ -104,17 +104,17 @@ export default class ExamProc implements Processor {
             await parseDOMText(page, question.description),
             await Promise.all(
               question.options.map(
-                async ({ content }) => await parseDOMText(page, content)
-              )
-            )
+                async ({ content }) => await parseDOMText(page, content),
+              ),
+            ),
           );
 
           return {
             subjectId: question.id,
             answerOptionIds: resp.map((i) => question.options[i].id),
-            updatedAt: question.last_updated_at
+            updatedAt: question.last_updated_at,
           };
-        })
+        }),
       );
 
       const waitTime = total * 200 + Math.random() * 5 * 100;
@@ -130,14 +130,14 @@ export default class ExamProc implements Processor {
         examPaperInstanceId,
         submissionId,
         optionIds,
-        total
+        total,
       );
 
       q = await this.pullQuestions(
         exam,
         page,
         rightQuestionOptions,
-        wrongQuestionOptions
+        wrongQuestionOptions,
       );
 
       if (q) {
@@ -159,7 +159,7 @@ export default class ExamProc implements Processor {
     exam: Exam,
     page: Page,
     rightQuestionOptions: Record<SubjectId, OptionId[] | undefined>,
-    wrongQuestionOptions: Record<SubjectId, OptionId[] | undefined>
+    wrongQuestionOptions: Record<SubjectId, OptionId[] | undefined>,
   ) {
     let { exam_score, submissions } = await exam.getSubmissions();
 
@@ -190,7 +190,7 @@ export default class ExamProc implements Processor {
 
       console.log(
         '分数(最新/最高/总分):',
-        `${curScore}/${exam_score}/${this.#totalPoints}`
+        `${curScore}/${exam_score}/${this.#totalPoints}`,
       );
     }
 
@@ -207,7 +207,7 @@ export default class ExamProc implements Processor {
     // TODO: 我们需要总结所有的考试结果, 因为有些考试是随机题目
     // 目前是获取最高分数
     const maxSubmission = submissions?.find(
-      (v) => v.score && Number(v.score) == exam_score
+      (v) => v.score && Number(v.score) == exam_score,
     );
 
     // 答过题, 获取已知答案
@@ -239,7 +239,7 @@ export default class ExamProc implements Processor {
           .filter((option) => !wqo[question.id]?.find((id) => id == option.id))
           .filter((option) => {
             const { answer_option_ids } = submission_data.subjects.find(
-              (pre) => pre.subject_id == question.id
+              (pre) => pre.subject_id == question.id,
             )!;
 
             // 需要添加错误解集合
@@ -248,7 +248,7 @@ export default class ExamProc implements Processor {
 
         // 将还不知道的选项除外, 都是错误的
         wqo[question.id] = question.options.flatMap((option) =>
-          options.find((opt) => opt.id == option.id) ? [] : option.id
+          options.find((opt) => opt.id == option.id) ? [] : option.id,
         );
 
         console.log('options:', options);
@@ -262,7 +262,7 @@ export default class ExamProc implements Processor {
       questions,
       examPaperInstanceId,
       subjects,
-      total: subjects.length
+      total: subjects.length,
     };
   }
 
@@ -292,8 +292,8 @@ export default class ExamProc implements Processor {
       .filter((v) => v.type != 'text')
       .every((v) =>
         ['true_or_false', 'single_selection' /*'multiple_selection'*/].includes(
-          v.type
-        )
+          v.type,
+        ),
       );
 
     return test;

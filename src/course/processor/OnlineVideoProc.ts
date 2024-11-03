@@ -22,7 +22,7 @@ export default class OnlineVideoProc implements Processor {
           element.classList.remove('mvp-replay-player-hidden-control');
         },
         {},
-        { timeout: 1000 * 60 }
+        { timeout: 1000 * 60 },
       );
     };
 
@@ -42,14 +42,14 @@ export default class OnlineVideoProc implements Processor {
 
     const playRate = 16;
     await page.evaluate(
-      `document.getElementsByTagName("video")[0].playbackRate = ${playRate}`
+      `document.getElementsByTagName("video")[0].playbackRate = ${playRate}`,
     );
     console.log(playRate, '倍速');
 
     const getVideoTime = async () => {
       const display = page.locator('div.mvp-time-display');
       let [start, end] = (await display.textContent({ timeout: 1000 }))!.split(
-        '/'
+        '/',
       );
 
       return [start.trim(), end.trim()];
@@ -88,7 +88,7 @@ export default class OnlineVideoProc implements Processor {
 
     const prcsBar = this.createProgress(
       this.timeToMinutes(start) * 60,
-      this.timeToMinutes(end) * 60
+      this.timeToMinutes(end) * 60,
     );
 
     let preCur = (await getVideoTime())[0];
@@ -96,7 +96,7 @@ export default class OnlineVideoProc implements Processor {
       const cur = (await getVideoTime())[0];
       if (preCur != cur) {
         prcsBar.tick(
-          (this.timeToMinutes(cur) - this.timeToMinutes(preCur)) * 60
+          (this.timeToMinutes(cur) - this.timeToMinutes(preCur)) * 60,
         );
         preCur = cur;
       }
@@ -107,7 +107,7 @@ export default class OnlineVideoProc implements Processor {
       (date) => {
         // 此为浏览器环境
         const display = document.querySelector(
-          'div.mvp-time-display'
+          'div.mvp-time-display',
         ) as HTMLElement;
         // start duration / end duration
         // example: 23:11 / 36:11
@@ -121,7 +121,7 @@ export default class OnlineVideoProc implements Processor {
         return cur == end;
       },
       Date.now(),
-      { timeout: 0, polling: 1000 }
+      { timeout: 0, polling: 1000 },
     );
 
     clearInterval(timer);
@@ -134,7 +134,7 @@ export default class OnlineVideoProc implements Processor {
       total: end,
       width: 30,
       clear: true,
-      callback: () => console.log('play finished')
+      callback: () => console.log('play finished'),
     });
     bar.tick(cur);
     return bar;

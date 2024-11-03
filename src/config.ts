@@ -14,10 +14,10 @@ const Config = {
     login: () => BASE_SSO_URL,
     user: () => `${API_BASE_URL}/user`,
     course: () => `${API_BASE_URL}/course`,
-    home: () => `${Config.urls.user()}/index#/`
+    home: () => `${Config.urls.user()}/index#/`,
     // modules: (courseId: string) => `https://lms.ouchn/api/courses/${courseId}/modules`,
   },
-  proxy: host && port ? { host: host!, port: Number(port) } : void 0
+  proxy: host && port ? { host: host!, port: Number(port) } : void 0,
 };
 
 export default Config;

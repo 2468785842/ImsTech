@@ -27,7 +27,7 @@ import chalk from 'chalk';
 
   // https://lms.ouchn.cn/user/index 返回会携带 WAF Cookie
   const cs = await page.evaluate(
-    async () => await (window as any).cookieStore.getAll()
+    async () => await (window as any).cookieStore.getAll(),
   );
 
   // HWWAFSESID HWWAFSESTIME; 华为云 WAF 防护, 每次登陆都会更新
@@ -36,7 +36,7 @@ import chalk from 'chalk';
     filterCookies(cs, ['session']).map((cookie) => ({
       ...cookie,
       domain: API_BASE_URL.substring('https://'.length),
-    }))
+    })),
   );
 
   await page.getByRole('link', { name: '我的课程' }).click();
@@ -52,7 +52,7 @@ import chalk from 'chalk';
 
     // 考试需要特殊处理
     const courses = (await Search.getUncompletedCourses(page, item)).filter(
-      (course) => course.progress != 'full' || course.type == 'exam'
+      (course) => course.progress != 'full' || course.type == 'exam',
     );
 
     for (const [i, course] of courses.entries()) {
@@ -65,9 +65,9 @@ import chalk from 'chalk';
             course.activityName,
             course.progress,
             i + 1,
-            courses.length
-          )
-        )
+            courses.length,
+          ),
+        ),
       );
 
       const processor = Processor.getProcessor(course.type);
@@ -75,7 +75,7 @@ import chalk from 'chalk';
         console.warn(
           '不支持的课程类型:',
           Processor.getCourseType(course.type),
-          '\n'
+          '\n',
         );
         continue;
       }

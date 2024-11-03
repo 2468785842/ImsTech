@@ -57,7 +57,7 @@ async function restoreCookies(): Promise<Array<Cookie>> {
   if (fs.existsSync(cookieFilename)) {
     // playwright 不识别null,需要转换undefined
     const cookies: Cookie[] = JSON.parse(
-      String(fs.readFileSync(cookieFilename))
+      String(fs.readFileSync(cookieFilename)),
     );
     cookies.forEach((cookie) => {
       for (const k in cookie) {
@@ -68,7 +68,7 @@ async function restoreCookies(): Promise<Array<Cookie>> {
       cookie.sameSite = {
         STRICT: 'Strict',
         LAX: 'Lax',
-        None: 'None'
+        None: 'None',
       }[cookie.sameSite.toUpperCase()] as any;
     });
 

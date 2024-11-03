@@ -3,7 +3,7 @@ import Exam from '../src/api/Exam.js';
 
 test('获取考试信息', async () => {
   const exam = new Exam(60000512656);
-  
+
   // const questionInfo = await exam.get();
   // console.log('questionInfo', questionInfo);
   // const distribute = await exam.getDistribute();

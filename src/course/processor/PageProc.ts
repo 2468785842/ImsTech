@@ -12,7 +12,7 @@ export default class PageProc implements Processor {
       element.scrollTo({
         left: 0,
         top: element.scrollHeight,
-        behavior: 'smooth'
+        behavior: 'smooth',
       });
       return element.scrollHeight;
     });
@@ -35,7 +35,7 @@ export default class PageProc implements Processor {
       element.scrollTo({
         left: 0,
         top: element.scrollHeight,
-        behavior: 'smooth'
+        behavior: 'smooth',
       });
       return element.scrollHeight;
     });

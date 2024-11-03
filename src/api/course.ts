@@ -10,20 +10,20 @@ const Api = newAxiosInstance();
 function getAllActivities(
   courseId: number,
   moduleIds: number[],
-  activityTypes: ActivityType[]
+  activityTypes: ActivityType[],
 ) {
   return Api.get(`course/${courseId}/all-activities`, {
     params: {
       module_ids: `[${moduleIds.join(',')}]`,
-      activity_types: activityTypes.join(', ')
-    }
+      activity_types: activityTypes.join(', '),
+    },
   });
 }
 
 /**
  * 返回两个Cookie, 提交某些操作需要携带
- * @param courseType 
- * @param id 
+ * @param courseType
+ * @param id
  * @returns BENSESSCC_TAG session
  */
 function activitiesRead(courseType: CourseType, id: number) {
@@ -36,5 +36,5 @@ function activitiesRead(courseType: CourseType, id: number) {
 }
 
 export default {
-  activitiesRead
+  activitiesRead,
 };

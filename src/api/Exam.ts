@@ -33,9 +33,8 @@ export default class {
     this.#activityId = activityId;
     this.#axios = newAxiosInstance(`exams/${activityId}`);
     // 为了过检测
-    this.#axios.defaults.headers.common[
-      'Referer'
-    ] = `${API_BASE_URL}/exam/${activityId}/subjects`;
+    this.#axios.defaults.headers.common['Referer'] =
+      `${API_BASE_URL}/exam/${activityId}/subjects`;
   }
 
   addCookies(cookies: Array<{ name: string; value: string }>) {
@@ -75,7 +74,7 @@ export default class {
    * */
   async getSubjectsSummary(forAllSubjects: boolean) {
     const response = await this.#axios.get('subjects-summary', {
-      params: { forAllSubjects }
+      params: { forAllSubjects },
     });
 
     const subjectsSummary: {
@@ -232,14 +231,14 @@ export default class {
    * @return 当你提交答案时需要带上 id
    */
   async submissionsStorage(
-    distribute: Awaited<ReturnType<typeof this.getDistribute>>
+    distribute: Awaited<ReturnType<typeof this.getDistribute>>,
   ): Promise<number | undefined> {
     const url = 'submissions/storage';
     let response = await this.#axios.get(url).catch(() => void 0);
 
     if (!response || response.status == HttpStatusCode.NotFound) {
       const subjects = distribute.subjects.filter(
-        (subject) => subject.type != 'text'
+        (subject) => subject.type != 'text',
       );
 
       response = await this.#axios.post(url, {
@@ -248,12 +247,12 @@ export default class {
         subjects: subjects.map((subject) => ({
           subject_id: subject.id,
           subject_updated_at: subject.last_updated_at,
-          answer_option_ids: []
+          answer_option_ids: [],
         })),
         progress: {
           answered_num: 0,
-          total_subjects: distribute.subjects.length
-        }
+          total_subjects: distribute.subjects.length,
+        },
       });
     }
 
@@ -275,21 +274,21 @@ export default class {
       answerOptionIds: OptionId[];
       updatedAt: string;
     }>,
-    totalSubjects: number
+    totalSubjects: number,
   ) {
     const response = await this.#axios.post('submissions', {
       exam_paper_instance_id: examPaperInstanceId,
       exam_submission_id: examSubmissionId,
       progress: {
         answered_num: subjects.length,
-        total_subjects: totalSubjects
+        total_subjects: totalSubjects,
       },
       reason: 'user',
       subjects: subjects.map((subject) => ({
         subject_id: subject.subjectId,
         answer_option_ids: subject.answerOptionIds,
-        subject_updated_at: subject.updatedAt
-      }))
+        subject_updated_at: subject.updatedAt,
+      })),
     });
 
     return response.data;

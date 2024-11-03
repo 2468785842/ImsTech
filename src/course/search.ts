@@ -29,7 +29,7 @@ async function getModulesData(locs: Array<Locator>) {
       const syllabusesLoc = await module.locator('div.course-syllabus').all();
 
       return { moduleId, moduleName, module, syllabusesLoc };
-    })
+    }),
   );
 }
 
@@ -57,7 +57,7 @@ async function getSyllabusesData(moduleData: {
         moduleName,
         syllabusId,
         syllabusName,
-        activitiesLocList: await getActivitiesList(syllabusLoc)
+        activitiesLocList: await getActivitiesList(syllabusLoc),
       };
     });
 
@@ -70,14 +70,14 @@ async function getSyllabusesData(moduleData: {
       moduleName,
       syllabusId: null,
       syllabusName: null,
-      activitiesLocList: await getActivitiesList(module)
-    }
+      activitiesLocList: await getActivitiesList(module),
+    },
   ];
 }
 
 async function getUncompletedCourses(
   page: Page,
-  activityInfo: Activity.ActivityInfo
+  activityInfo: Activity.ActivityInfo,
 ): Promise<CourseInfo[]> {
   console.log('正在获取未完成的课程...');
 
@@ -131,13 +131,13 @@ async function getUncompletedCourses(
                   type: await getActivityType(activityLoc),
                   activityId: await getActivityId(activityLoc),
                   activityName: await getActivityName(activityLoc),
-                  activityLoc
+                  activityLoc,
                 }
-              : []
-          )
+              : [],
+          ),
         )
       ).flat();
-    })
+    }),
   );
 
   const activities = (await Promise.all(activitiesAsync)).flat();
@@ -145,7 +145,7 @@ async function getUncompletedCourses(
   // 最后填充进度和活动名
   const coursesData = activities.map(async (activity) => {
     const complete = activity.activityLoc.locator(
-      'activity-completeness-bar div.completeness'
+      'activity-completeness-bar div.completeness',
     );
 
     // 完成进度

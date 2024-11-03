@@ -14,7 +14,7 @@ test('测试考试答题', async ({ page }) => {
     activityId: 60000502885,
     activityName: '??',
     type: 'exam',
-    progress: 'part'
+    progress: 'part',
   });
   await exam.exec(page);
 });

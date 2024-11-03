@@ -36,7 +36,7 @@ async function getActivities(page: Page): Promise<ActivityInfo[]> {
         .innerText();
 
       return { title, semester, code, startDate, percent };
-    })
+    }),
   );
 }
 

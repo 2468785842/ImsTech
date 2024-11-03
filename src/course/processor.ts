@@ -42,7 +42,7 @@ const COURSE_TYPE = {
   virtual_experiment: '虚拟仿真实验',
   mix_task: '复合任务',
   vocabulary: '词汇表',
-  unknown: '未知'
+  unknown: '未知',
 };
 
 function getCourseType(key: CourseType) {

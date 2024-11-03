@@ -14,8 +14,8 @@ function newAxiosInstance(url: string = '') {
     timeout: 20000,
     proxy: proxy && {
       ...proxy,
-      protocol: 'http'
-    }
+      protocol: 'http',
+    },
   });
 
   axiosInstance.interceptors.request.use(async (config) => {
@@ -49,7 +49,7 @@ function newAxiosInstance(url: string = '') {
         .flatMap((cookie) =>
           defaultCookie.indexOf(cookie.name) == -1
             ? `${cookie.name}=${cookie.value}`
-            : []
+            : [],
         )
         .join('; ');
 

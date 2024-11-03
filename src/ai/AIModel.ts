@@ -56,8 +56,8 @@ class AIModel {
         new https.Agent({
           host: proxy!.host,
           port: proxy!.port,
-          rejectUnauthorized: false // 忽略 SSL 证书验证
-        })
+          rejectUnauthorized: false, // 忽略 SSL 证书验证
+        }),
     })!;
     this.#Qps = Qps;
   }
@@ -65,7 +65,7 @@ class AIModel {
   async getResponse(
     type: SubjectType,
     description: string,
-    options: string[]
+    options: string[],
   ): Promise<number[]> {
     if (options.length < 2) {
       console.error(chalk.red('意料之外的错误, 问题选项数量 < 2 ???'));
@@ -89,7 +89,7 @@ class AIModel {
     > = {
       single_selection: this.singleSelection,
       true_or_false: this.trueOrFalse,
-      multiple_selection: this.multipleSelection
+      multiple_selection: this.multipleSelection,
     };
 
     if (!strategies[type]) {
@@ -117,13 +117,15 @@ class AIModel {
       .map((resp) => resp.replace(/答案：|答案:|答案/, ''));
 
     let answerIds = responses.map((letter) => {
-      const ltr = letter.match(/[a-zA-Z]/)?.[0]?.trim()?.[0]?.toUpperCase();
-      if(!ltr || ltr > 'D') {
+      const ltr = letter
+        .match(/[a-zA-Z]/)?.[0]
+        ?.trim()?.[0]
+        ?.toUpperCase();
+      if (!ltr || ltr > 'D') {
         throw '解析 AI 回答出错, 无法正确处理: ' + letter;
       }
       return letter2Num(ltr as Letter);
-    }
-    ); // 确保只匹配 1-4 的数字
+    }); // 确保只匹配 1-4 的数字
 
     if (!answerIds || !answerIds.length) {
       console.error(chalk.red('AI 返回的答案格式无效:'), responses);
@@ -131,15 +133,14 @@ class AIModel {
     }
 
     if (!answerIds.every((v) => Number.isInteger(v))) {
+      console.error(
+        chalk.red('无法解析 AI 回答:'),
+        responses,
+        'parse:',
+        answerIds,
+      );
 
-        console.error(
-          chalk.red('无法解析 AI 回答:'),
-          responses,
-          'parse:',
-          answerIds
-        );
-
-        exit();
+      exit();
     }
 
     if (!answerIds.every((v) => v < options.length)) {
@@ -156,7 +157,7 @@ class AIModel {
     const [questionContent, systemConstraint] = this.constraintTemplate(
       '判断题',
       description,
-      options
+      options,
     );
 
     console.log(questionContent);
@@ -167,9 +168,9 @@ class AIModel {
         messages: [
           { role: 'system', content: systemConstraint },
           { role: 'user', content: questionContent },
-          { role: 'user', content: '请只返回正确答案的字母' }
+          { role: 'user', content: '请只返回正确答案的字母' },
         ],
-        model: this.#model
+        model: this.#model,
       });
 
     return content;
@@ -179,7 +180,7 @@ class AIModel {
     const [questionContent, systemConstraint] = this.constraintTemplate(
       '选择题',
       description,
-      options
+      options,
     );
 
     console.log(questionContent);
@@ -190,9 +191,9 @@ class AIModel {
         messages: [
           { role: 'system', content: systemConstraint },
           { role: 'user', content: questionContent },
-          { role: 'user', content: '请只返回正确答案的字母' }
+          { role: 'user', content: '请只返回正确答案的字母' },
         ],
-        model: this.#model
+        model: this.#model,
       });
 
     return content;
@@ -202,7 +203,7 @@ class AIModel {
     const [questionContent, systemConstraint] = this.constraintTemplate(
       '多选题',
       description,
-      options
+      options,
     );
 
     console.log(questionContent);
@@ -215,26 +216,30 @@ class AIModel {
           { role: 'user', content: questionContent },
           {
             role: 'user',
-            content: '请只返回正确答案的字母使用换行符分割, 例如: A\nC\nD'
-          }
+            content: '请只返回正确答案的字母使用换行符分割, 例如: A\nC\nD',
+          },
         ],
-        model: this.#model
+        model: this.#model,
       });
 
     return content;
   }
 
-  private constraintTemplate(type: string, description: string, options: string[]) {
+  private constraintTemplate(
+    type: string,
+    description: string,
+    options: string[],
+  ) {
     return [
       this.questionContentTemplate(type, description, options),
-      this.systemConstraintTemplate(type, options)
+      this.systemConstraintTemplate(type, options),
     ];
   }
 
   private questionContentTemplate(
     type: string,
     description: string,
-    options: string[]
+    options: string[],
   ) {
     console.assert(options.length < 5, '可选项太多 > 5');
     const questionContent = format(
@@ -242,7 +247,7 @@ class AIModel {
       `请回答以下${type}，并只返回正确答案的字母：`,
       `题目：${description}`,
       '选项：',
-      `${options.map((option, index) => `\t${num2Letter(index as Num)}. ${option}`).join('\n')}`
+      `${options.map((option, index) => `\t${num2Letter(index as Num)}. ${option}`).join('\n')}`,
     );
     return questionContent;
   }
