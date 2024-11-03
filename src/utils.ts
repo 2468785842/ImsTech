@@ -38,6 +38,3 @@ function input(query: string) {
 }
 
 export {input, waitForSPALoaded};
-export const Sleep = (ms: number) => {
-    return new Promise(resolve => setTimeout(resolve, ms))
-}

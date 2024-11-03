@@ -5,12 +5,13 @@ import 'source-map-support/register.js';
 import * as Activity from './activity.js';
 import * as Processor from './course/processor.js';
 import * as Search from './course/search.js';
-import {Sleep, waitForSPALoaded} from './utils.js';
+import {waitForSPALoaded} from './utils.js';
 import Config from './config.js';
 import {login} from './login.js';
 import AIModel from './ai/AIModel.js';
 import {format} from 'util';
 import chalk from 'chalk';
+import {sleep} from "openai/core.js";
 
 (async () => {
     await AIModel.init();
@@ -47,7 +48,7 @@ import chalk from 'chalk';
                         course.syllabusName ?? course.moduleName,
                         course.activityName,
                         course.progress,
-                        i,
+                        i + 1,
                         courses.length
                     )
                 )
@@ -79,14 +80,14 @@ import chalk from 'chalk';
             for (const es of t) {
                 if ((await es.getAttribute('class'))!.lastIndexOf('locked') != -1) {
                     // 延迟1.5秒
-                    await Sleep(1500)
+                    await sleep(1500)
                     console.log('课程锁定', '跳过');
                     continue;
                 }
 
                 if (await es.$('xpath=../*[contains(@class, "upcoming")]')) {
                     // 延迟1.5秒
-                    await Sleep(1500)
+                    await sleep(1500)
                     console.log('课程未开始', '跳过');
                     continue;
                 }
