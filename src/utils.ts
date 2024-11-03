@@ -26,7 +26,7 @@ async function waitForSPALoaded(page: Page) {
 function input(query: string) {
   const rl = ReadLine.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
   });
 
   return new Promise<string>((resolve) => {
