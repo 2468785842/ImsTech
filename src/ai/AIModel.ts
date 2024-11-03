@@ -112,28 +112,38 @@ class AIModel {
     }
 
     // 提取并解析 AI 返回的答案
-    const response = content.choices[0].message.content?.trim() ?? '';
-    const answerIds = response
+    const responses = (content.choices[0].message.content?.trim() ?? '')
       .split('\n')
-      .map((id) => Number(id.match(/\d+/)?.[0]?.trim()?.[0])); // 确保只匹配 1-4 的数字
+      .map((resp) => resp.replace(/答案：|答案:|答案/, ''));
+
+    let answerIds = responses.map((letter) => {
+      const ltr = letter.match(/[a-zA-Z]/)?.[0]?.trim()?.[0]?.toUpperCase();
+      if(!ltr || ltr > 'D') {
+        throw '解析 AI 回答出错, 无法正确处理: ' + letter;
+      }
+      return letter2Num(ltr as Letter);
+    }
+    ); // 确保只匹配 1-4 的数字
 
     if (!answerIds || !answerIds.length) {
-      console.error(chalk.red('AI 返回的答案格式无效:'), response);
+      console.error(chalk.red('AI 返回的答案格式无效:'), responses);
       exit();
     }
 
     if (!answerIds.every((v) => Number.isInteger(v))) {
-      console.error(
-        chalk.red('无法解析 AI 回答:'),
-        response,
-        'parse:',
-        answerIds
-      );
-      exit();
+
+        console.error(
+          chalk.red('无法解析 AI 回答:'),
+          responses,
+          'parse:',
+          answerIds
+        );
+
+        exit();
     }
 
     if (!answerIds.every((v) => v < options.length)) {
-      console.error(chalk.red('AI 回答序号超出答案序号:'), response);
+      console.error(chalk.red('AI 回答序号超出答案序号:'), responses);
       exit();
     }
 
@@ -157,7 +167,7 @@ class AIModel {
         messages: [
           { role: 'system', content: systemConstraint },
           { role: 'user', content: questionContent },
-          { role: 'user', content: '请只返回正确答案的序号' }
+          { role: 'user', content: '请只返回正确答案的字母' }
         ],
         model: this.#model
       });
@@ -180,7 +190,7 @@ class AIModel {
         messages: [
           { role: 'system', content: systemConstraint },
           { role: 'user', content: questionContent },
-          { role: 'user', content: '请只返回正确答案的序号' }
+          { role: 'user', content: '请只返回正确答案的字母' }
         ],
         model: this.#model
       });
@@ -205,7 +215,7 @@ class AIModel {
           { role: 'user', content: questionContent },
           {
             role: 'user',
-            content: '请只返回正确答案的序号使用换行符分割, 例如: 0\n2\n3'
+            content: '请只返回正确答案的字母使用换行符分割, 例如: A\nC\nD'
           }
         ],
         model: this.#model
@@ -214,31 +224,33 @@ class AIModel {
     return content;
   }
 
-  constraintTemplate(type: string, description: string, options: string[]) {
+  private constraintTemplate(type: string, description: string, options: string[]) {
     return [
       this.questionContentTemplate(type, description, options),
       this.systemConstraintTemplate(type, options)
     ];
   }
 
-  questionContentTemplate(
+  private questionContentTemplate(
     type: string,
     description: string,
     options: string[]
   ) {
+    console.assert(options.length < 5, '可选项太多 > 5');
     const questionContent = format(
       '%s\n%s\n%s\n%s',
-      `请回答以下${type}，并只返回正确答案的序号：`,
+      `请回答以下${type}，并只返回正确答案的字母：`,
       `题目：${description}`,
       '选项：',
-      `${options.map((option, index) => `\t${index}. ${option}`).join('\n')}`
+      `${options.map((option, index) => `\t${num2Letter(index as Num)}. ${option}`).join('\n')}`
     );
     return questionContent;
   }
 
-  systemConstraintTemplate(type: string, options: string[]) {
-    const systemConstraint = `你将回答${type}。只返回正确答案的序号(${options
-      .map((_, i) => i)
+  private systemConstraintTemplate(type: string, options: string[]) {
+    console.assert(options.length < 5, '可选项太多 > 5');
+    const systemConstraint = `你将回答${type}。只返回正确答案的字母(${options
+      .map((_, i) => num2Letter(i as Num))
       .join(',')})。`;
     return systemConstraint;
   }
@@ -249,6 +261,18 @@ class AIModel {
   #taskQueue: Array<Promise<any>> = [];
 
   static instance?: AIModel;
+}
+
+type Num = 0 | 1 | 2 | 3;
+
+type Letter = 'A' | 'B' | 'C' | 'D';
+
+function num2Letter(n: Num): Letter {
+  return String.fromCharCode(n + 'A'.charCodeAt(0)) as Letter;
+}
+
+function letter2Num(c: Letter): Num {
+  return (c.charCodeAt(0) - 'A'.charCodeAt(0)) as Num;
 }
 
 export default AIModel;
