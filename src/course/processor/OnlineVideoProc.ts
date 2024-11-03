@@ -28,7 +28,7 @@ export default class OnlineVideoProc implements Processor {
 
     await waitForSPALoaded(page);
 
-    /*if (
+    if (
       (await page
         .locator('video')
         .innerHTML({ timeout: 1000 })
@@ -36,12 +36,11 @@ export default class OnlineVideoProc implements Processor {
     ) {
       console.log('未知原因加载失败: 跳过');
       return;
-    }*/
+    }
 
     await tryToShowControls();
 
-    //设置 8 倍速，过快加载不出来视频
-    const playRate = 8;
+    const playRate = 16;
     await page.evaluate(
       `document.getElementsByTagName("video")[0].playbackRate = ${playRate}`
     );
@@ -135,7 +134,7 @@ export default class OnlineVideoProc implements Processor {
       total: end,
       width: 30,
       clear: true,
-      callback: () => console.log('play finished'),
+      callback: () => console.log('play finished')
     });
     bar.tick(cur);
     return bar;
