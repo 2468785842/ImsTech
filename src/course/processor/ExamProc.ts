@@ -163,15 +163,14 @@ export default class ExamProc implements Processor {
   ) {
     let { exam_score, submissions } = await exam.getSubmissions();
 
-    while (
-      submissions &&
-      !submissions.every((submission) => submission.score != null)
-    ) {
+    while (submissions && !submissions.every(({ score }) => score != null)) {
+      await page.waitForTimeout(10000);
+
       console.log('等待系统评分');
+
       const t = await exam.getSubmissions();
       exam_score = t.exam_score;
       submissions = t.submissions;
-      await page.waitForTimeout(10000);
     }
 
     if (exam_score != void 0) {
@@ -204,7 +203,6 @@ export default class ExamProc implements Processor {
 
     let questions = subjects.filter((subject) => subject.type != 'text');
 
-    // TODO: 我们需要总结所有的考试结果, 因为有些考试是随机题目
     // 目前是获取最高分数
     const maxSubmission = submissions?.find(
       (v) => v.score && Number(v.score) == exam_score,
@@ -215,10 +213,24 @@ export default class ExamProc implements Processor {
       const { submission_data, submission_score_data } =
         await exam.getSubmission(maxSubmission.id);
 
-      // 收集正确答案
+      // 收集正确 或错误答案
+      // TODO: 目前不支持多选题
       submission_data.subjects.forEach(({ subject_id, answer_option_ids }) => {
         if (Number(submission_score_data[subject_id]) != 0) {
-          rightQuestionOptions[subject_id] = answer_option_ids;
+          // merge unique
+          rightQuestionOptions[subject_id] = [
+            ...new Set([
+              ...(rightQuestionOptions[subject_id] ?? []),
+              ...answer_option_ids,
+            ]),
+          ];
+        } else {
+          wrongQuestionOptions[subject_id] = [
+            ...new Set([
+              ...(wrongQuestionOptions[subject_id] ?? []),
+              ...answer_option_ids,
+            ]),
+          ];
         }
       });
 
@@ -251,8 +263,8 @@ export default class ExamProc implements Processor {
           options.find((opt) => opt.id == option.id) ? [] : option.id,
         );
 
-        console.log('options:', options);
-        console.log('wqo:', wqo[question.id]);
+        // console.log('options:', options);
+        // console.log('wqo:', wqo[question.id]);
 
         return { ...question, options };
       });

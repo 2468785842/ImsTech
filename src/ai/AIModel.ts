@@ -148,7 +148,7 @@ class AIModel {
       exit();
     }
 
-    console.log('AI 答案:', chalk.green(answerIds));
+    console.log('AI 答案:', chalk.green(answerIds.map(num2Letter)));
 
     return answerIds; // 确保只返回匹配到的数字
   }
