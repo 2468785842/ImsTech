@@ -9,6 +9,7 @@ import { exit } from 'process';
 import course from '../../api/course.js';
 import chalk from 'chalk';
 import { parseDOMText } from '../../utils.js';
+import { AxiosError, HttpStatusCode } from 'axios';
 
 export default class ExamProc implements Processor {
   name: CourseType = 'exam';
@@ -20,7 +21,18 @@ export default class ExamProc implements Processor {
     this.#courseInfo = info;
     console.log(info.activityId);
     const exam = new Exam(info.activityId);
-    return !!AIModel.instance && (await this.isSupport(exam));
+
+    if (!AIModel.instance) {
+      console.log('AI 未加载: skip');
+      return false;
+    }
+
+    if (!(await this.isSupport(exam))) {
+      console.log('考试问题某些类型目前不支持: skip');
+      return false;
+    }
+
+    return true;
   }
 
   async exec(page: Page) {
@@ -78,7 +90,7 @@ export default class ExamProc implements Processor {
         questions.map(async (question) => {
           // 正确解集合中已有答案
           if (rightQuestionOptions[question.id]) {
-            console.log('skip question:', question.id);
+            console.log('已经知道答案:', question.id);
 
             return {
               subjectId: question.id,
@@ -89,7 +101,7 @@ export default class ExamProc implements Processor {
 
           // 只有一个选项, 我们可以肯定它是对的
           if (question.options.length == 1) {
-            console.log('推断出答案:', question.id);
+            console.log('可以推断出答案:', question.id);
 
             return {
               subjectId: question.id,
@@ -117,8 +129,9 @@ export default class ExamProc implements Processor {
         }),
       );
 
-      const waitTime = total * 200 + Math.random() * 5 * 100;
-      // console.log('wait:', waitTime);
+      const waitTime = total * 400 + Math.random() * 5 * 100;
+      console.log((waitTime / 1000).toFixed(2), '秒后提交');
+
       await page.waitForTimeout(waitTime);
 
       if (!submissionId) {
@@ -126,12 +139,32 @@ export default class ExamProc implements Processor {
         exit();
       }
 
-      const r = await exam.postSubmissions(
-        examPaperInstanceId,
-        submissionId,
-        optionIds,
-        total,
-      );
+      // 提交答案
+      let r;
+      let counter = 3;
+      do {
+        try {
+          r = await exam.postSubmissions(
+            examPaperInstanceId,
+            submissionId,
+            optionIds,
+            total,
+          );
+        } catch (e) {
+          // 这里有时候返回429并不是真的太多请求
+          // 也有可能是请求头缺少某些字段,导致验证失败
+          if (
+            e instanceof AxiosError &&
+            e.response?.status === HttpStatusCode.TooManyRequests
+          ) {
+            console.log('太多请求, 等待10s');
+            await page.waitForTimeout(10000);
+            counter--;
+            continue;
+          }
+          throw e; // Re-throw if it's not a 429 error
+        }
+      } while (!r && counter > 0);
 
       q = await this.pullQuestions(
         exam,
@@ -164,9 +197,8 @@ export default class ExamProc implements Processor {
     let { exam_score, submissions } = await exam.getSubmissions();
 
     while (submissions && !submissions.every(({ score }) => score != null)) {
-      await page.waitForTimeout(10000);
-
       console.log('等待系统评分');
+      await page.waitForTimeout(10000);
 
       const t = await exam.getSubmissions();
       exam_score = t.exam_score;
@@ -216,22 +248,15 @@ export default class ExamProc implements Processor {
       // 收集正确 或错误答案
       // TODO: 目前不支持多选题
       submission_data.subjects.forEach(({ subject_id, answer_option_ids }) => {
-        if (Number(submission_score_data[subject_id]) != 0) {
-          // merge unique
-          rightQuestionOptions[subject_id] = [
-            ...new Set([
-              ...(rightQuestionOptions[subject_id] ?? []),
-              ...answer_option_ids,
-            ]),
-          ];
-        } else {
-          wrongQuestionOptions[subject_id] = [
-            ...new Set([
-              ...(wrongQuestionOptions[subject_id] ?? []),
-              ...answer_option_ids,
-            ]),
-          ];
-        }
+        const oos =
+          Number(submission_score_data[subject_id]) != 0
+            ? rightQuestionOptions
+            : wrongQuestionOptions;
+
+        // merge unique
+        oos[subject_id] = [
+          ...new Set([...(oos[subject_id] ?? []), ...answer_option_ids]),
+        ];
       });
 
       // 需要过滤错误答案

@@ -1,8 +1,6 @@
 import { Axios, AxiosResponse, HttpStatusCode } from 'axios';
 import { newAxiosInstance } from './axiosInstance.js';
-import Config, { API_BASE_URL } from '../config.js';
-import { Cookie, Page } from 'playwright';
-import { restoreCookies } from '../login.js';
+import { API_BASE_URL } from '../config.js';
 
 // true_or_false 判断题
 // single_selection 单选题
@@ -38,7 +36,7 @@ export default class {
   }
 
   addCookies(cookies: Array<{ name: string; value: string }>) {
-    console.log('Exam add Cookies:\n', cookies);
+    // console.log('Exam add Cookies:\n', cookies);
 
     const headers = this.#axios.defaults.headers;
     headers.common['Cookie'] = cookies
@@ -117,7 +115,7 @@ export default class {
     const response = await this.#axios
       .get('submissions')
       .catch((resp: AxiosResponse) => {
-        if (resp.status == 404) return { data: {} };
+        if (resp.status == HttpStatusCode.NotFound) return { data: {} };
         throw resp.statusText;
       });
 
@@ -260,11 +258,12 @@ export default class {
   }
 
   /**
-   * 提交答案
-   * @param examPaperInstanceId 同 submissionStorge
-   * @param examSubmissionId submissionStorge返回值
+   * 提交答案, 不能频繁提交
+   * 
+   * @param examPaperInstanceId 同 submissionStorage
+   * @param examSubmissionId submissionStorage返回值
    * @param subjects 答案数组
-   * @param totalSubjects 同 submissionStoge
+   * @param totalSubjects 同 submissionStorage
    */
   async postSubmissions(
     examPaperInstanceId: number,
