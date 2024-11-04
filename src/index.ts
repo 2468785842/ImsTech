@@ -72,11 +72,7 @@ import chalk from 'chalk';
 
       const processor = Processor.getProcessor(course.type);
       if (!processor) {
-        console.warn(
-          '不支持的课程类型:',
-          Processor.getCourseType(course.type),
-          '\n',
-        );
+        console.warn('不支持的课程类型:', Processor.getCourseType(course.type));
         continue;
       }
 
@@ -89,51 +85,48 @@ import chalk from 'chalk';
         tLoc = tLoc.locator(`#${course.syllabusId}`);
       }
 
-      const t = (await tLoc
+      const t = tLoc
         .locator(`#learning-activity-${course.activityId}`)
-        .getByText(course.activityName, { exact: true })
-        .elementHandles())!;
+        .getByText(course.activityName, { exact: true });
 
-      for (const es of t) {
-        if ((await es.getAttribute('class'))!.lastIndexOf('locked') != -1) {
-          console.log('课程锁定', '跳过');
-          continue;
-        }
-
-        if (await es.$('xpath=../*[contains(@class, "upcoming")]')) {
-          console.log('课程未开始', '跳过');
-          continue;
-        }
-
-        await es.click();
-
-        await page.waitForURL(RegExp(`^${Config.urls.course()}.*`), {
-          timeout: 30000,
-          waitUntil: 'domcontentloaded',
-        });
-
-        for (let count = 5; count > -1; count--) {
-          await waitForSPALoaded(page);
-          try {
-            await processor?.exec(page);
-            break;
-          } catch (e) {
-            console.error(e);
-            console.log('process course failed: retry', count);
-            await page.reload({ timeout: 1000 * 60 });
-          }
-        }
-
-        // 回到课程选择页
-        await page.goBack({
-          timeout: 0,
-          waitUntil: 'domcontentloaded',
-        });
-        await page.reload({
-          timeout: 10000,
-          waitUntil: 'domcontentloaded',
-        });
+      if ((await t.getAttribute('class'))!.lastIndexOf('locked') != -1) {
+        console.log('课程锁定', '跳过');
+        continue;
       }
+
+      if (await t.locator('xpath=../*[contains(@class, "upcoming")]').count()) {
+        console.log('课程未开始', '跳过');
+        continue;
+      }
+
+      await t.click();
+
+      await page.waitForURL(RegExp(`^${Config.urls.course()}.*`), {
+        timeout: 30000,
+        waitUntil: 'domcontentloaded',
+      });
+
+      for (let count = 5; count > -1; count--) {
+        await waitForSPALoaded(page);
+        try {
+          await processor?.exec(page);
+          break;
+        } catch (e) {
+          console.error(e);
+          console.log('process course failed: retry', count);
+          await page.reload({ timeout: 1000 * 60 });
+        }
+      }
+
+      // 回到课程选择页
+      await page.goBack({
+        timeout: 0,
+        waitUntil: 'domcontentloaded',
+      });
+      await page.reload({
+        timeout: 10000,
+        waitUntil: 'domcontentloaded',
+      });
       // console.debug("go back to course page");
     }
     await page.goBack({

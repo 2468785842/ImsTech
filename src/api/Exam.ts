@@ -64,7 +64,24 @@ export default class {
    *             "point": "25.0",
    *             "sub_subjects": [] // 如果type是random 那么这里是随机题目的类型
    *             "type": "true_or_false"
-   *         }
+   *         },
+   *         {
+   *              "has_audio": false,
+   *              "id": 60020719291,
+   *              "point": "4.0",
+   *              "sub_subjects": [
+   *                  {
+   *                      "point": "4.0",
+   *                      "type": "single_selection"
+   *                  },
+   *                  {
+   *                      "point": "4.0",
+   *                      "type": "single_selection"
+   *                  },
+   *                  ...
+   *              ],
+   *              "type": "random"
+   *          },
    *         ...
    *     ]
    * }
@@ -80,7 +97,7 @@ export default class {
         has_audio: boolean;
         id: SubjectId;
         point: string;
-        // sub_subjects: Array<any>;
+        sub_subjects: Array<any>;
         type: SubjectType;
       }>;
     } = response.data;

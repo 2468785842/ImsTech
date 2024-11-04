@@ -37,7 +37,7 @@ _CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # chrome
 
 # 可选 不设置不开启自动答题
 # 目前只会帮助回答可尝试次数为999的exam
-# AI 答题, 目前支持单选, 判断, 不支持多选, 和随机题目
+# AI 答题, 目前支持单选, 判断, 和随机题目. 不支持多选和简答题等等..
 
 _API="https://spark-api-open.xf-yun.com/v1" # api 接口
 _KEY="nxetovst4bY1v0hUIk8L:NxYXC44THZHkVUmWLLGb" # 密钥, 此为演示, 不可用

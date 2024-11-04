@@ -322,15 +322,19 @@ export default class ExamProc implements Processor {
     // if (subjects_count > 4) return false; // 题目要少 不然 AI 不行的
 
     // check subject summary
-    const subjectsSummary = await exam.getSubjectsSummary(true);
-    const { subjects } = subjectsSummary;
+    const { subjects } = await exam.getSubjectsSummary(true);
+
+    const isSupportSubject = (subject: (typeof subjects)[number]) =>
+      ['true_or_false', 'single_selection' /*'multiple_selection'*/].includes(
+        subject.type,
+      );
 
     const test = subjects
       .filter((v) => v.type != 'text')
       .every((v) =>
-        ['true_or_false', 'single_selection' /*'multiple_selection'*/].includes(
-          v.type,
-        ),
+        v.type == 'random'
+          ? v.sub_subjects.every(isSupportSubject)
+          : isSupportSubject(v),
       );
 
     return test;
