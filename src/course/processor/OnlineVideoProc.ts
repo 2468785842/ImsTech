@@ -28,12 +28,7 @@ export default class OnlineVideoProc implements Processor {
 
     await waitForSPALoaded(page);
 
-    if (
-      (await page
-        .locator('video')
-        .innerHTML({ timeout: 1000 })
-        .catch(() => '')) == ''
-    ) {
+    if (!(await page.locator('video').locator(':nth-child(n)').count())) {
       console.log('未知原因加载失败: 跳过');
       return;
     }

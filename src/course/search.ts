@@ -87,15 +87,11 @@ async function getUncompletedCourses(
   await waitForSPALoaded(page);
   await page.locator('input[type="checkbox"]').setChecked(false);
 
-  await page.waitForLoadState('domcontentloaded');
+  await waitForSPALoaded(page);
+  const expandBtn = page.getByText(/全部(?:收起|展开)/);
 
-  if ((await page.getByText('全部收起').count()) == 0) {
-    await page
-      .getByText('全部展开')
-      .click({ timeout: 500 })
-      .catch(() => {
-        console.warn('没有全部展开按钮,可能已经展开?');
-      });
+  if ((await expandBtn.textContent())!.indexOf('收起')) {
+    await expandBtn.click();
     await page.waitForLoadState('domcontentloaded');
   }
 
@@ -103,13 +99,17 @@ async function getUncompletedCourses(
   const modules = await page.locator('div.module').all();
   const modulesData = await getModulesData(modules);
 
+  console.log('get ModulesData count:', modulesData.length);
+
   const syllabusesData = (
     await Promise.all(modulesData.map(getSyllabusesData))
   ).flat();
 
-  // some stuff is finished, so is empty, we will skip
+  console.log('get SyllabusesData count:', syllabusesData.length);
+
+  // some stuff is finished, so is empty, we need skip
   const hasContentActivity = async (activity: Locator) => {
-    return (await activity.innerHTML({ timeout: 1000 }).catch(() => '')) != '';
+    return await activity.locator(':nth-child(n)').count();
   };
 
   // 过滤无内容和隐藏的活动 usableActivities
@@ -141,6 +141,8 @@ async function getUncompletedCourses(
   );
 
   const activities = (await Promise.all(activitiesAsync)).flat();
+
+  console.log('get activities count:', activities.length);
 
   // 最后填充进度和活动名
   const coursesData = activities.map(async (activity) => {
