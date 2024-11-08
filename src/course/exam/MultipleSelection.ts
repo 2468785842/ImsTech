@@ -106,7 +106,7 @@ class MultipleSelection extends BaseSubjectResolver {
     if (NNN.length != 0) return NNN;
 
     // 随便选
-    const priority = [3, 1, 4, 2];
+    const priority = [4, 3, 1, 2];
     for (const p of priority) {
       if (this.combinations.length >= p && this.combinations[p].length != 0) {
         // 使用 reduce 找到最大总和值的组合索引

@@ -378,7 +378,12 @@ export default class ExamProc implements Processor {
   private async isSupport(exam: Exam): Promise<boolean> {
     const examInfo = await exam.get();
 
-    const { submit_times, submitted_times, total_points } = examInfo;
+    const {
+      submit_times,
+      submitted_times,
+      total_points,
+      announce_score_status,
+    } = examInfo;
 
     this.#totalScore = total_points;
 
@@ -388,7 +393,11 @@ export default class ExamProc implements Processor {
     console.log('题目数:', examInfo['subjects_count']);
     console.log('允许提交次数:', submit_times);
     console.log('已经提交次数:', submitted_times);
+    console.log('公布成绩:', announce_score_status);
     console.log('总分:', total_points);
+
+    // immediate_announce
+    if (announce_score_status == 'no_announce') return false;
 
     if (submit_times != 999 || submit_times <= submitted_times) return false; // 可提交次数必须足够大, 因为AI答不准
 
@@ -396,7 +405,11 @@ export default class ExamProc implements Processor {
     // check subject summary
     const { subjects } = await exam.getSubjectsSummary(true);
 
-    console.log(subjects.flatMap((s) => (s.type != 'text' ? s2s[s.type] : [])));
+    console.log(
+      subjects.flatMap((s) =>
+        s.type != 'text' ? (s2s[s.type] ?? s.type) : [],
+      ),
+    );
 
     const isSupportSubject = ({ type }: (typeof subjects)[number]) =>
       hasResolver(type);
