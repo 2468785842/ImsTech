@@ -14,7 +14,7 @@ export type Subject = {
   id: SubjectId;
   last_updated_at: string; // ISO time
   options: Option[];
-  point: string; // 分数
+  point: string; // 得分百分比
   type: SubjectType;
 };
 
@@ -35,6 +35,12 @@ abstract class BaseSubjectResolver {
     this._aiModel = aiModel;
   }
 
+  /**
+   * 添加一个选项数组, 由实现者判断次选项是否正确
+   *
+   * @param score 得分百分比
+   * @param optionIds 此次错误选项集合
+   */
   abstract addAnswerFilter(
     score: number,
     ...optionIds: OptionId[]

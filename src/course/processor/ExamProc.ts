@@ -14,12 +14,19 @@ import BaseSubjectResolver from '../exam/BaseSubjectResolver.js';
 import { createResolver, hasResolver, s2s } from '../exam/resolver.js';
 import { CourseInfo, CourseType } from '../search.js';
 
+/**
+ * score当你全部答对就是100, point是得分百分比, 比如总分112, 实际你exam_score最大为: 100
+ */
 export default class ExamProc implements Processor {
   name: CourseType = 'exam';
 
   #courseInfo?: CourseInfo;
-  #totalPoints: number = 0;
-  private gtScorePass = 90;
+  #totalPoints: number = 100;
+  #totalScore: number = -1;
+
+  // config
+  private gtScorePass = 100;
+  private tryCount = 10;
 
   async condition(info: CourseInfo) {
     this.#courseInfo = info;
@@ -77,7 +84,7 @@ export default class ExamProc implements Processor {
       );
     }
 
-    for (let i = 0; q && i < 5; i++) {
+    for (let i = 0; q && i < this.tryCount; i++) {
       const { questions, examPaperInstanceId, subjects, total } = q;
 
       const submissionId = await exam.submissionsStorage({
@@ -169,7 +176,7 @@ export default class ExamProc implements Processor {
 
     // 可复用的, 需要清除
     this.#courseInfo = undefined;
-    this.#totalPoints = 0;
+    this.#totalScore = -1;
   }
 
   // 提交答案
@@ -217,13 +224,6 @@ export default class ExamProc implements Processor {
     >['subjects'],
     aiModel: AIModel,
   ) {
-    subjects.forEach((s) => {
-      if (s.type == 'multiple_selection' && Number(s.point) != 3) {
-        console.log('s:', s);
-        exit();
-      }
-    });
-
     return subjects
       .filter((subject) => subject.type != 'text')
       .reduce(
@@ -264,8 +264,8 @@ export default class ExamProc implements Processor {
       curScore = Number.isNaN(curScore) ? void 0 : curScore;
 
       console.log(
-        '分数(最新/最高/总分):',
-        `${curScore ?? '?'}/${examScore}/${this.#totalPoints}`,
+        '分数(最新/最高/总分)[%]/总分:',
+        `${curScore ?? '?'}/${examScore}/${this.#totalPoints}/${this.#totalScore}`,
       );
 
       return [curScore, examScore];
@@ -280,8 +280,6 @@ export default class ExamProc implements Processor {
     aiModel: AIModel,
     subjectResolverList: Partial<Record<SubjectId, BaseSubjectResolver>>,
   ) {
-    console.log('正在获取题目...');
-
     let getSubmission = await exam.getSubmissions();
 
     while (getSubmission.submissions?.find(({ score }) => score == null)) {
@@ -330,6 +328,7 @@ export default class ExamProc implements Processor {
 
     // 答过题, 获取已知答案
     if (examScore) {
+      // TODO: 实际上不用每次都去重新获取一遍
       for (const { id } of getSubmission.submissions!) {
         console.log('正在收集历史考试答案: ', id);
         await this.collectSubmissons(id, exam, subjectResolverList);
@@ -359,8 +358,8 @@ export default class ExamProc implements Processor {
     // 需要注意的是, 如果是多选题, 我们无法知道哪些选项是错误的, 哪些是正确的
     for (const { subject_id, answer_option_ids } of submission_data.subjects) {
       const s = subjects.find(({ id }) => id == subject_id)!;
-      const point = Number(s.point); // point为这道题总分
-      const score = Number(submission_score_data[subject_id]);
+      const point = Number(s.point); // point为这道题总分, 百分比
+      const score = Number(submission_score_data[subject_id]); //百分比
 
       let filterOpts = answer_option_ids;
 
@@ -382,7 +381,7 @@ export default class ExamProc implements Processor {
 
     const { submit_times, submitted_times, total_points } = examInfo;
 
-    this.#totalPoints = total_points;
+    this.#totalScore = total_points;
 
     console.log('完成标准:', examInfo['completion_criterion']);
     console.log('标题:', examInfo['title']);

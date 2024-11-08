@@ -1,5 +1,5 @@
 import test from '@playwright/test';
-import AIModel from '../../src/ai/AIModel.js';
+import AIModel, { Num, num2Letter } from '../../src/ai/AIModel.js';
 import { OptionId, SubjectType } from '../../src/api/Exam.js';
 import { Subject } from '../../src/course/exam/BaseSubjectResolver';
 import { createResolver } from '../../src/course/exam/resolver.js';

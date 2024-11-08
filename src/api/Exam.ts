@@ -243,7 +243,7 @@ export default class {
           id: OptionId; // 答案id
           type: string; // 类型
         }>;
-        point: string; // 分数
+        point: string; // 得分百分比
         type: SubjectType;
       }>;
     } = response.data;

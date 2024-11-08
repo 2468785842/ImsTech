@@ -1,17 +1,45 @@
 import { OptionId } from '../../api/Exam.js';
 import BaseSubjectResolver, { Option } from './BaseSubjectResolver.js';
 
-// 2^n − 1
+// 最大尝试次数: 2^n − 1
 class MultipleSelection extends BaseSubjectResolver {
   private dependableTable?: Record<OptionId, number>;
   private pass = false;
 
-  private combinations = this.generateCombinationsBySize(
+  private _combinations = this.generateCombinationsBySize(
     this.subject.options.map((opt) => opt.id),
   );
 
+  get combinations() {
+    return this._combinations;
+  }
+
+  set combinations(c: typeof this._combinations) {
+    const clearEmptyArray = function <T>(arr: T[]): T[] {
+      const result: T[] = [];
+
+      for (const item of arr) {
+        if (Array.isArray(item)) {
+          const cleanedSubArray = clearEmptyArray(item);
+          if (cleanedSubArray.length > 0) {
+            result.push(cleanedSubArray as T);
+          }
+          continue;
+        }
+        result.push(item);
+      }
+
+      return result;
+    };
+
+    console.log('this._combinations', this._combinations);
+    this._combinations = clearEmptyArray(c);
+    console.log(this._combinations);
+  }
+
   private async initDependableTable() {
     if (!this.dependableTable) {
+      console.log('loading dependable tables... wait a minute');
       this.dependableTable = this.subject.options.reduce(
         (acc, { id }) => {
           acc[id] = 1;
@@ -38,38 +66,32 @@ class MultipleSelection extends BaseSubjectResolver {
   async addAnswerFilter(score: number, ...optionIds: OptionId[]) {
     if (this.pass) return;
 
-    const dependableTable = await this.initDependableTable();
-    const { point, options } = this.subject;
+    const { point } = this.subject;
+
+    const count = optionIds.length;
 
     if (Number(point) == score) {
-      for (const { id } of options) {
-        if (optionIds.findIndex((v) => id == v) == -1) {
-          dependableTable[id] = 999;
-        } else {
-          dependableTable[id] = 0;
-        }
-      }
-
+      this.combinations[count] = [optionIds];
       this.pass = true;
       return;
     }
+
+    if (count == this.subject.options.length) {
+      this.combinations[count] = [];
+      return;
+    }
+
     // 创建一个 `Set`，用于快速判断 `optionIds` 中是否包含某个选项
     const optionIdSet = new Set(optionIds);
-    const count = optionIds.length;
     // 过滤掉不符合 `optionIds` 的组合
-    this.combinations[count] = this.combinations[count].filter((c) =>
-      c.every((id) => optionIdSet.has(id)),
+    this.combinations[count] = this.combinations[count].filter(
+      (c) =>
+        c.length == optionIdSet.size && !c.every((id) => optionIdSet.has(id)),
     );
   }
 
   async getAnswer(): Promise<OptionId[]> {
     const dependableTable = await this.initDependableTable();
-    if (!this.isPass())
-      console.log(
-        this.subject.description,
-        'dependable table:',
-        dependableTable,
-      );
 
     const sortDT = this.sortDependableTable();
 
@@ -81,16 +103,8 @@ class MultipleSelection extends BaseSubjectResolver {
     const priority = [1, 3, 4, 2, 0];
     for (const p of priority) {
       if (this.combinations.length >= p && this.combinations[p].length != 0) {
-
-        // 过滤掉空数组，确保 reduce 不会处理空数组
-        const nonEmptyCombinations = this.combinations[p].filter(
-          (c) => c.length > 0,
-        );
-
-        if (nonEmptyCombinations.length === 0) continue;
-
         // 使用 reduce 找到最大总和值的组合索引
-        const maxCombination = nonEmptyCombinations.reduce((max, current) => {
+        const maxCombination = this.combinations[p].reduce((max, current) => {
           const currentSum = this.sumDependable(current, dependableTable);
           const maxSum = this.sumDependable(max, dependableTable);
           return currentSum > maxSum ? current : max;
@@ -148,12 +162,14 @@ class MultipleSelection extends BaseSubjectResolver {
     }
     const result = Array.from(
       { length: options.length + 1 },
-      () => [[]] as OptionId[][],
+      () => [] as OptionId[][],
     );
 
     function helper(currentCombination: OptionId[], start: number) {
       // 根据组合的长度，将当前组合加入到对应的 result 索引位置
-      result[currentCombination.length].push([...currentCombination]);
+      if (currentCombination.length != 0) {
+        result[currentCombination.length].push([...currentCombination]);
+      }
 
       // 遍历选项，生成更多的组合
       for (let i = start; i < options.length; i++) {
