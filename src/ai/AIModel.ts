@@ -62,11 +62,19 @@ class AIModel {
     this.#Qps = Qps;
   }
 
+  /**
+   * 询问题目, 获取AI的回答
+   *
+   * @param type 题目类型
+   * @param description 题目描述
+   * @param options 可选项
+   * @returns 返回可选项索引
+   */
   async getResponse(
     type: SubjectType,
     description: string,
     options: string[],
-  ): Promise<number[]> {
+  ): Promise<number> {
     if (options.length < 2) {
       console.error(chalk.red('意料之外的错误, 问题选项数量 < 2 ???'));
       exit();
@@ -89,7 +97,6 @@ class AIModel {
     > = {
       single_selection: this.singleSelection,
       true_or_false: this.trueOrFalse,
-      multiple_selection: this.multipleSelection,
     };
 
     if (!strategies[type]) {
@@ -97,7 +104,7 @@ class AIModel {
       exit();
     }
 
-    const task = strategies[type].bind(this)(description, options);
+    const task = strategies[type]!.bind(this)(description, options);
 
     this.#taskQueue.push(task);
 
@@ -112,45 +119,33 @@ class AIModel {
     }
 
     // 提取并解析 AI 返回的答案
-    const responses = (content.choices[0].message.content?.trim() ?? '')
-      .split('\n')
-      .map((resp) => resp.replace(/答案：|答案:|答案/, ''));
+    const responses = (
+      content.choices[0].message.content?.trim() ?? ''
+    ).replace(/答案：|答案:|答案/, '');
 
-    let answerIds = responses.map((letter) => {
-      const ltr = letter
-        .match(/[a-zA-Z]/)?.[0]
-        ?.trim()?.[0]
-        ?.toUpperCase();
-      if (!ltr || ltr > 'D') {
-        throw '解析 AI 回答出错, 无法正确处理: ' + letter;
-      }
-      return letter2Num(ltr as Letter);
-    }); // 确保只匹配 1-4 的数字
+    let answerId = responses
+      .match(/[a-zA-Z]/)?.[0]
+      ?.trim()?.[0]
+      ?.toUpperCase();
 
-    if (!answerIds || !answerIds.length) {
-      console.error(chalk.red('AI 返回的答案格式无效:'), responses);
+    if (!answerId || answerId > 'D') {
+      throw '解析 AI 回答出错, 无法正确处理: ' + answerId;
+    }
+
+    // 确保只匹配 1-4 的数字
+    const num = letter2Num(answerId as Letter);
+
+    if (!Number.isInteger(num)) {
+      console.error(chalk.red('无法解析 AI 回答:'), responses, 'parse:', num);
       exit();
     }
 
-    if (!answerIds.every((v) => Number.isInteger(v))) {
-      console.error(
-        chalk.red('无法解析 AI 回答:'),
-        responses,
-        'parse:',
-        answerIds,
-      );
-
-      exit();
-    }
-
-    if (!answerIds.every((v) => v < options.length)) {
+    if (num >= options.length) {
       console.error(chalk.red('AI 回答序号超出答案序号:'), responses);
       exit();
     }
 
-    console.log('AI 答案:', chalk.green(answerIds.map(num2Letter)));
-
-    return answerIds; // 确保只返回匹配到的数字
+    return num; // 确保只返回匹配到的数字
   }
 
   async trueOrFalse(description: string, options: string[]) {
@@ -159,9 +154,6 @@ class AIModel {
       description,
       options,
     );
-
-    console.log(questionContent);
-    console.log(systemConstraint);
 
     const content: OpenAI.Chat.ChatCompletion =
       await this.#openai!.chat.completions.create({
@@ -183,41 +175,12 @@ class AIModel {
       options,
     );
 
-    console.log(questionContent);
-    console.log(systemConstraint);
-
     const content: OpenAI.Chat.ChatCompletion =
       await this.#openai!.chat.completions.create({
         messages: [
           { role: 'system', content: systemConstraint },
           { role: 'user', content: questionContent },
           { role: 'user', content: '请只返回正确答案的字母' },
-        ],
-        model: this.#model,
-      });
-
-    return content;
-  }
-
-  async multipleSelection(description: string, options: string[]) {
-    const [questionContent, systemConstraint] = this.constraintTemplate(
-      '多选题',
-      description,
-      options,
-    );
-
-    console.log(questionContent);
-    console.log(systemConstraint);
-
-    const content: OpenAI.Chat.ChatCompletion =
-      await this.#openai!.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemConstraint },
-          { role: 'user', content: questionContent },
-          {
-            role: 'user',
-            content: '请只返回正确答案的字母使用换行符分割, 例如: A\nC\nD',
-          },
         ],
         model: this.#model,
       });
@@ -241,7 +204,7 @@ class AIModel {
     description: string,
     options: string[],
   ) {
-    console.assert(options.length < 5, '可选项太多 > 5');
+    console.assert(options.length < 5, '可选项太多 > 4');
     const questionContent = format(
       '%s\n%s\n%s\n%s',
       `请回答以下${type}，并只返回正确答案的字母：`,
@@ -253,7 +216,7 @@ class AIModel {
   }
 
   private systemConstraintTemplate(type: string, options: string[]) {
-    console.assert(options.length < 5, '可选项太多 > 5');
+    console.assert(options.length < 5, '可选项太多 > 4');
     const systemConstraint = `你将回答${type}。只返回正确答案的字母(${options
       .map((_, i) => num2Letter(i as Num))
       .join(',')})。`;
@@ -268,15 +231,15 @@ class AIModel {
   static instance?: AIModel;
 }
 
-type Num = 0 | 1 | 2 | 3;
+export type Num = 0 | 1 | 2 | 3;
 
-type Letter = 'A' | 'B' | 'C' | 'D';
+export type Letter = 'A' | 'B' | 'C' | 'D';
 
-function num2Letter(n: Num): Letter {
+export function num2Letter(n: Num): Letter {
   return String.fromCharCode(n + 'A'.charCodeAt(0)) as Letter;
 }
 
-function letter2Num(c: Letter): Num {
+export function letter2Num(c: Letter): Num {
   return (c.charCodeAt(0) - 'A'.charCodeAt(0)) as Num;
 }
 

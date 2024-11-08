@@ -15,12 +15,14 @@ import chalk from 'chalk';
 (async () => {
   await AIModel.init();
 
+  const headless = !!process.env._HEAD_LESS;
   const browser = await chromium.use(StealthPlugin()).launch({
     executablePath: process.env._CHROME_DEV!,
-    headless: false,
-    slowMo: 1000, // 搞太快会限制访问
-    // ignoreDefaultArgs: ['--headless=old'],
-    // args: ['--headless=new']
+    headless,
+    slowMo: 1000, // 搞太快会限制访问,
+    timeout: 1000 * 60 * 2,
+    ignoreDefaultArgs: headless ? ['--headless=old'] : [],
+    args: headless ? ['--headless=new'] : [],
   });
 
   const page = await login(browser);

@@ -1,21 +1,25 @@
+import { AxiosError, HttpStatusCode } from 'axios';
+import chalk from 'chalk';
 import { Page } from 'playwright';
+import { exit } from 'process';
 
 import { Processor } from '../processor.js';
 
-import { CourseInfo, CourseType } from '../search.js';
-import Exam, { OptionId, SubjectId } from '../../api/Exam.js';
-import AIModel from '../../ai/AIModel.js';
-import { exit } from 'process';
+import { sleep } from 'openai/core.js';
+import AIModel, { Num, num2Letter } from '../../ai/AIModel.js';
 import course from '../../api/course.js';
-import chalk from 'chalk';
+import Exam, { OptionId, SubjectId } from '../../api/Exam.js';
 import { parseDOMText } from '../../utils.js';
-import { AxiosError, HttpStatusCode } from 'axios';
+import BaseSubjectResolver from '../exam/BaseSubjectResolver.js';
+import { createResolver, hasResolver, s2s } from '../exam/resolver.js';
+import { CourseInfo, CourseType } from '../search.js';
 
 export default class ExamProc implements Processor {
   name: CourseType = 'exam';
 
   #courseInfo?: CourseInfo;
   #totalPoints: number = 0;
+  private gtScorePass = 90;
 
   async condition(info: CourseInfo) {
     this.#courseInfo = info;
@@ -40,19 +44,15 @@ export default class ExamProc implements Processor {
     console.assert(AIModel.instance, 'error ai model is null');
 
     const exam = new Exam(this.#courseInfo!.activityId);
-
-    // 问题错误解集合
-    const wrongQuestionOptions: Record<SubjectId, OptionId[] | undefined> = {};
-
-    // 问题正确解集合, 奖池会累加!! :)
-    const rightQuestionOptions: Record<SubjectId, OptionId[] | undefined> = {};
+    const subjectResolverList: Partial<Record<SubjectId, BaseSubjectResolver>> =
+      {};
 
     // 过滤出所有问题
     let q = await this.pullQuestions(
       exam,
       page,
-      rightQuestionOptions,
-      wrongQuestionOptions,
+      AIModel.instance!,
+      subjectResolverList,
     );
 
     if (q) {
@@ -79,105 +79,89 @@ export default class ExamProc implements Processor {
 
     for (let i = 0; q && i < 5; i++) {
       const { questions, examPaperInstanceId, subjects, total } = q;
-      // console.log('questions:', questions);
 
       const submissionId = await exam.submissionsStorage({
         exam_paper_instance_id: examPaperInstanceId,
         subjects,
       });
 
-      const optionIds = await Promise.all(
-        questions.map(async (question) => {
-          // 正确解集合中已有答案
-          if (rightQuestionOptions[question.id]) {
-            console.log('已经知道答案:', question.id);
-
-            return {
-              subjectId: question.id,
-              answerOptionIds: rightQuestionOptions[question.id]!,
-              updatedAt: question.last_updated_at,
-            };
-          }
-
-          // 只有一个选项, 我们可以肯定它是对的
-          if (question.options.length == 1) {
-            console.log('可以推断出答案:', question.id);
-
-            return {
-              subjectId: question.id,
-              answerOptionIds: [question.options[0].id],
-              updatedAt: question.last_updated_at,
-            };
-          }
-
-          // 找不到的问AI
-          const resp = await AIModel.instance!.getResponse(
-            question.type,
-            await parseDOMText(page, question.description),
-            await Promise.all(
-              question.options.map(
-                async ({ content }) => await parseDOMText(page, content),
-              ),
-            ),
-          );
-
-          return {
-            subjectId: question.id,
-            answerOptionIds: resp.map((i) => question.options[i].id),
-            updatedAt: question.last_updated_at,
-          };
-        }),
-      );
-
-      const waitTime = total * 400 + Math.random() * 5 * 100;
-      console.log((waitTime / 1000).toFixed(2), '秒后提交');
-
-      await page.waitForTimeout(waitTime);
-
       if (!submissionId) {
         console.log('意料之外的错误:', "can't get submissionId");
         exit();
       }
 
-      // 提交答案
-      let r;
-      let counter = 3;
-      do {
-        try {
-          r = await exam.postSubmissions(
-            examPaperInstanceId,
-            submissionId,
-            optionIds,
-            total,
-          );
-        } catch (e) {
-          // 这里有时候返回429并不是真的太多请求
-          // 也有可能是请求头缺少某些字段,导致验证失败
-          if (
-            e instanceof AxiosError &&
-            e.response?.status === HttpStatusCode.TooManyRequests
-          ) {
-            console.log('太多请求, 等待10s');
-            await page.waitForTimeout(10000);
-            counter--;
-            continue;
+      const answerSubjects = await Promise.all(
+        questions.map(async (subject) => {
+          const resolver = subjectResolverList[subject.id];
+
+          if (!resolver) {
+            console.error(subject);
+            throw new Error(
+              `Oops! impossable!! can't found resolver: ${subject.id} ${subject.type}`,
+            );
           }
-          throw e; // Re-throw if it's not a 429 error
-        }
-      } while (!r && counter > 0);
+
+          const answerOptionIds = await resolver.getAnswer();
+
+          if (!resolver.isPass()) {
+            // 打印题目
+            console.log(
+              chalk.bgGreenBright(
+                `${' '.repeat(10)}${s2s[subject.type]} ${' '.repeat(10)}`,
+              ),
+            );
+
+            console.log(subject.description);
+            const entries = subject.options.entries();
+
+            for (const [i, v] of entries) {
+              console.log(`\t${num2Letter(i as Num)}. ${v.content}`);
+            }
+
+            console.log(
+              'AI 回答:',
+              subject.options.flatMap(({ id }, i) =>
+                answerOptionIds.includes(id) ? num2Letter(i as Num) : [],
+              ),
+              answerOptionIds,
+            );
+
+            console.log();
+          }
+
+          return {
+            subjectId: subject.id,
+            answerOptionIds,
+            updatedAt: subject.last_updated_at,
+          };
+        }),
+      );
+
+      const waitTime = total * 200 + Math.random() * 5 * 100;
+      console.log((waitTime / 1000).toFixed(2), '秒后提交');
+
+      await page.waitForTimeout(waitTime);
+
+      await this.submitAnswer(
+        exam,
+        examPaperInstanceId,
+        submissionId,
+        answerSubjects,
+        total,
+      );
 
       q = await this.pullQuestions(
         exam,
         page,
-        rightQuestionOptions,
-        wrongQuestionOptions,
+        AIModel.instance!,
+        subjectResolverList,
       );
 
       if (q) {
         console.log('不是满分, 重新执行');
         console.log('尝试次数:', i + 1);
 
-        const waitTime = total * 2000;
+        const waitTime = total * 1000;
         console.log(waitTime / 1000, '秒后重新开始答题');
         await page.waitForTimeout(waitTime);
       }
@@ -188,119 +172,209 @@ export default class ExamProc implements Processor {
     this.#totalPoints = 0;
   }
 
-  private async pullQuestions(
+  // 提交答案
+  private async submitAnswer(
     exam: Exam,
-    page: Page,
-    rightQuestionOptions: Record<SubjectId, OptionId[] | undefined>,
-    wrongQuestionOptions: Record<SubjectId, OptionId[] | undefined>,
+    examPaperInstanceId: number,
+    submissionId: number,
+    subjects: Array<{
+      subjectId: SubjectId;
+      answerOptionIds: OptionId[];
+      updatedAt: string;
+    }>,
+    totalSubjects: number,
   ) {
-    let { exam_score, submissions } = await exam.getSubmissions();
+    let r;
+    let counter = 5;
+    do {
+      try {
+        r = await exam.postSubmissions(
+          examPaperInstanceId,
+          submissionId,
+          subjects,
+          totalSubjects,
+        );
+      } catch (e) {
+        // 这里有时候返回429并不是真的太多请求
+        // 也有可能是请求头缺少某些字段,导致验证失败
+        if (
+          e instanceof AxiosError &&
+          e.response!.status === HttpStatusCode.TooManyRequests
+        ) {
+          console.log('太多请求, 等待10s');
+          await sleep(10000);
+          counter--;
+          continue;
+        }
+        throw e; // Re-throw if it's not a 429 error
+      }
+    } while (!r && counter > 0);
+  }
 
-    while (submissions && !submissions.every(({ score }) => score != null)) {
-      console.log('等待系统评分');
-      await page.waitForTimeout(10000);
+  private async createSubjectResolverList(
+    subjects: Awaited<
+      ReturnType<typeof Exam.prototype.getDistribute>
+    >['subjects'],
+    aiModel: AIModel,
+  ) {
+    subjects.forEach((s) => {
+      if (s.type == 'multiple_selection' && Number(s.point) != 3) {
+        console.log('s:', s);
+        exit();
+      }
+    });
 
-      const t = await exam.getSubmissions();
-      exam_score = t.exam_score;
-      submissions = t.submissions;
-    }
+    return subjects
+      .filter((subject) => subject.type != 'text')
+      .reduce(
+        (acc, subject) => {
+          acc[subject.id] = createResolver(subject.type, subject, aiModel);
+          return acc;
+        },
+        {} as Record<SubjectId, BaseSubjectResolver>,
+      );
+  }
 
-    if (exam_score != void 0) {
+  /**
+   * 提取考试历史成绩
+   * @param param0
+   * @returns [最新考试成绩, 历史最高分]
+   */
+  private async getHistoryScore({
+    exam_score: examScore,
+    submissions,
+  }: Awaited<ReturnType<typeof Exam.prototype.getSubmissions>>): Promise<
+    [number | undefined, number | undefined]
+  > {
+    if (examScore != void 0) {
       // 获取最新的结果
       let newestIndex = 0;
       for (let i = 1; submissions && i < submissions.length; i++) {
         if (
-          new Date(submissions[newestIndex].submitted_at).getTime() <
-          new Date(submissions[i].submitted_at).getTime()
+          new Date(submissions[newestIndex].submitted_at) <
+          new Date(submissions[i].submitted_at)
         ) {
           newestIndex = i;
         }
       }
 
-      const curScore = submissions?.[newestIndex]?.score ?? '?';
+      let curScore: number | undefined = Number(
+        submissions?.[newestIndex]?.score,
+      );
+      curScore = Number.isNaN(curScore) ? void 0 : curScore;
 
       console.log(
         '分数(最新/最高/总分):',
-        `${curScore}/${exam_score}/${this.#totalPoints}`,
+        `${curScore ?? '?'}/${examScore}/${this.#totalPoints}`,
       );
+
+      return [curScore, examScore];
     }
 
-    if (exam_score == this.#totalPoints) {
-      return null;
+    return [void 0, void 0];
+  }
+
+  private async pullQuestions(
+    exam: Exam,
+    page: Page,
+    aiModel: AIModel,
+    subjectResolverList: Partial<Record<SubjectId, BaseSubjectResolver>>,
+  ) {
+    console.log('正在获取题目...');
+
+    let getSubmission = await exam.getSubmissions();
+
+    while (getSubmission.submissions?.find(({ score }) => score == null)) {
+      console.log('等待系统评分...');
+      await sleep(10000);
+      getSubmission = await exam.getSubmissions();
     }
+
+    const [_, examScore] = await this.getHistoryScore(getSubmission);
+
+    if (
+      examScore &&
+      (examScore == this.#totalPoints || examScore > this.gtScorePass)
+    )
+      return null;
 
     // 确实还不知道, 要不要重新获取问题, 有可能不重新获取亦可以? 可以复用?
-    const { exam_paper_instance_id: examPaperInstanceId, subjects } =
-      await exam.getDistribute();
+    const getDistribute = await exam.getDistribute();
 
-    let questions = subjects.filter((subject) => subject.type != 'text');
+    const subjects = await Promise.all(
+      getDistribute.subjects.map(async (subject) => {
+        const options: (typeof subject)['options'] = [];
 
-    // 目前是获取最高分数
-    const maxSubmission = submissions?.find(
-      (v) => v.score && Number(v.score) == exam_score,
-    );
-
-    // 答过题, 获取已知答案
-    if (maxSubmission) {
-      const { submission_data, submission_score_data } =
-        await exam.getSubmission(maxSubmission.id);
-
-      // 收集正确 或错误答案
-      // TODO: 目前不支持多选题
-      submission_data.subjects.forEach(({ subject_id, answer_option_ids }) => {
-        const oos =
-          Number(submission_score_data[subject_id]) != 0
-            ? rightQuestionOptions
-            : wrongQuestionOptions;
-
-        // merge unique
-        oos[subject_id] = [
-          ...new Set([...(oos[subject_id] ?? []), ...answer_option_ids]),
-        ];
-      });
-
-      // 需要过滤错误答案
-      questions = questions.map((question) => {
-        const score = Number(submission_score_data[question.id]);
-
-        // 我们已经回答正确了, TODO: 如果是多选题需要修改此处逻辑
-        // 直接返回就行了, 后面做处理
-        if (score != 0) {
-          return question;
+        for (const opt of subject.options) {
+          options.push({
+            ...opt,
+            content: await parseDOMText(page, opt.content),
+          });
         }
 
-        const wqo = wrongQuestionOptions;
+        return {
+          ...subject,
+          description: await parseDOMText(page, subject.description),
+          options,
+        };
+      }),
+    );
 
-        // 回答错误的选项需要过滤
-        const options = question.options
-          .filter((option) => !wqo[question.id]?.find((id) => id == option.id))
-          .filter((option) => {
-            const { answer_option_ids } = submission_data.subjects.find(
-              (pre) => pre.subject_id == question.id,
-            )!;
+    const srl = await this.createSubjectResolverList(subjects, aiModel);
 
-            // 需要添加错误解集合
-            return !answer_option_ids.find((v) => v == option.id);
-          });
+    for (const id in srl) {
+      if (!subjectResolverList[id]) {
+        subjectResolverList[id] = srl[id];
+      }
+    }
 
-        // 将还不知道的选项除外, 都是错误的
-        wqo[question.id] = question.options.flatMap((option) =>
-          options.find((opt) => opt.id == option.id) ? [] : option.id,
-        );
-
-        // console.log('options:', options);
-        // console.log('wqo:', wqo[question.id]);
-
-        return { ...question, options };
-      });
+    // 答过题, 获取已知答案
+    if (examScore) {
+      for (const { id } of getSubmission.submissions!) {
+        console.log('正在收集历史考试答案: ', id);
+        await this.collectSubmissons(id, exam, subjectResolverList);
+      }
     }
 
     return {
-      questions,
-      examPaperInstanceId,
+      questions: subjects.filter(({ type }) => type != 'text'),
+      examPaperInstanceId: getDistribute.exam_paper_instance_id,
       subjects,
       total: subjects.length,
     };
+  }
+
+  private async collectSubmissons(
+    id: number,
+    exam: Exam,
+    subjectResolverList: Partial<Record<SubjectId, BaseSubjectResolver>>,
+  ) {
+    const {
+      subjects_data: { subjects },
+      submission_data,
+      submission_score_data,
+    } = await exam.getSubmission(id);
+
+    // 收集正确 或错误答案
+    // 需要注意的是, 如果是多选题, 我们无法知道哪些选项是错误的, 哪些是正确的
+    for (const { subject_id, answer_option_ids } of submission_data.subjects) {
+      const s = subjects.find(({ id }) => id == subject_id)!;
+      const point = Number(s.point); // point为这道题总分
+      const score = Number(submission_score_data[subject_id]);
+
+      let filterOpts = answer_option_ids;
+
+      if (point == score) {
+        filterOpts = s.options.flatMap(({ id }) =>
+          answer_option_ids.includes(id) ? [] : id,
+        );
+      }
+
+      await subjectResolverList[subject_id]!.addAnswerFilter(
+        score,
+        ...filterOpts,
+      );
+    }
   }
 
   private async isSupport(exam: Exam): Promise<boolean> {
@@ -319,15 +393,15 @@ export default class ExamProc implements Processor {
     console.log('总分:', total_points);
 
     if (submit_times != 999 || submit_times <= submitted_times) return false; // 可提交次数必须足够大, 因为AI答不准
-    // if (subjects_count > 4) return false; // 题目要少 不然 AI 不行的
 
+    console.log('检查考试信息...');
     // check subject summary
     const { subjects } = await exam.getSubjectsSummary(true);
 
-    const isSupportSubject = (subject: (typeof subjects)[number]) =>
-      ['true_or_false', 'single_selection' /*'multiple_selection'*/].includes(
-        subject.type,
-      );
+    console.log(subjects.flatMap((s) => (s.type != 'text' ? s2s[s.type] : [])));
+
+    const isSupportSubject = ({ type }: (typeof subjects)[number]) =>
+      hasResolver(type);
 
     const test = subjects
       .filter((v) => v.type != 'text')

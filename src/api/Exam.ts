@@ -162,6 +162,21 @@ export default class {
   async getSubmission(id: SubjectId) {
     const response = await this.#axios.get(`submissions/${id}`);
     const submission: {
+      score: number;
+      subjects_data: {
+        subjects: Array<{
+          id: SubjectId;
+          description: string; // 标题
+          point: string; // 分数 number 3.0
+          type: SubjectType;
+          options: Array<{
+            content: string; // 题目选项内容
+            id: OptionId;
+            sort: number;
+            type: SubjectType;
+          }>;
+        }>;
+      };
       submission_data: {
         subjects: Array<{
           answer_option_ids: OptionId[];

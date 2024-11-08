@@ -30,7 +30,7 @@ test('单项选择题测试', async () => {
     options,
   );
 
-  console.log(r.map(letters));
+  console.log(letters(r));
 
   // AI回答正确为C
   description = '文化自信的显著特点是（  ）';
@@ -47,7 +47,7 @@ test('单项选择题测试', async () => {
     options,
   );
 
-  console.log(r.map(letters));
+  console.log(letters(r));
 });
 
 test('判断题测试', async () => {
@@ -63,7 +63,7 @@ test('判断题测试', async () => {
     options,
   );
 
-  console.log(r.map(letters));
+  console.log(letters(r));
 
   // AI回答A, 正确答案为A
   description =
@@ -76,5 +76,5 @@ test('判断题测试', async () => {
     options,
   );
 
-  console.log(r.map(letters));
+  console.log(letters(r));
 });
