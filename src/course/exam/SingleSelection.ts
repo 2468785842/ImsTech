@@ -7,7 +7,6 @@ class SingleSelection extends BaseSubjectResolver {
   private wrongOptions: Option[] = [];
 
   async addAnswerFilter(_: number, ...optionIds: OptionId[]) {
-    if (this.isPass() || optionIds.length == 0) return;
 
     this.wrongOptions = [
       ...new Set([

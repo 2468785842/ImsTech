@@ -13,7 +13,7 @@ import { format } from 'util';
 import chalk from 'chalk';
 
 (async () => {
-  await AIModel.init();
+  await AIModel.init(true);
 
   const headless = !!process.env._HEAD_LESS;
   const browser = await chromium.use(StealthPlugin()).launch({

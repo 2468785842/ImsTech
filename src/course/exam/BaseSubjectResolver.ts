@@ -36,7 +36,7 @@ abstract class BaseSubjectResolver {
   }
 
   /**
-   * 添加一个选项数组, 由实现者判断次选项是否正确
+   * 添加一个选项数组, 下次判读会排除
    *
    * @param score 得分百分比
    * @param optionIds 此次错误选项集合

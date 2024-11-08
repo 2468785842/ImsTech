@@ -15,13 +15,13 @@ class MultipleSelection extends BaseSubjectResolver {
   }
 
   set combinations(c: typeof this._combinations) {
-    const clearEmptyArray = function <T>(arr: T[]): T[] {
+    const clearEmptyArray = function <T>(arr: T[], first = true): T[] {
       const result: T[] = [];
 
       for (const item of arr) {
         if (Array.isArray(item)) {
-          const cleanedSubArray = clearEmptyArray(item);
-          if (cleanedSubArray.length > 0) {
+          const cleanedSubArray = clearEmptyArray(item, false);
+          if (cleanedSubArray.length > 0 || first) {
             result.push(cleanedSubArray as T);
           }
           continue;
@@ -32,9 +32,7 @@ class MultipleSelection extends BaseSubjectResolver {
       return result;
     };
 
-    console.log('this._combinations', this._combinations);
     this._combinations = clearEmptyArray(c);
-    console.log(this._combinations);
   }
 
   private async initDependableTable() {
@@ -64,14 +62,24 @@ class MultipleSelection extends BaseSubjectResolver {
   }
 
   async addAnswerFilter(score: number, ...optionIds: OptionId[]) {
-    if (this.pass) return;
-
-    const { point } = this.subject;
-
     const count = optionIds.length;
 
-    if (Number(point) == score) {
-      this.combinations[count] = [optionIds];
+    if (count == 0 || this.combinations[count].length == 0) return;
+
+    const { options } = this.subject;
+
+    // 创建一个 `Set`，用于快速判断 `optionIds` 中是否包含某个选项
+    const optionIdSet = new Set(optionIds);
+
+    // 正确能拿满分, 不正确一分都拿不到
+    if (score != 0) {
+      this.combinations = Array.from(new Array(options.length + 1), () => []);
+
+      const r = options
+        .filter((opt) => !optionIdSet.has(opt.id))
+        .map((opt) => opt.id);
+
+      this.combinations[r.length] = [r];
       this.pass = true;
       return;
     }
@@ -81,8 +89,6 @@ class MultipleSelection extends BaseSubjectResolver {
       return;
     }
 
-    // 创建一个 `Set`，用于快速判断 `optionIds` 中是否包含某个选项
-    const optionIdSet = new Set(optionIds);
     // 过滤掉不符合 `optionIds` 的组合
     this.combinations[count] = this.combinations[count].filter(
       (c) =>
@@ -100,7 +106,7 @@ class MultipleSelection extends BaseSubjectResolver {
     if (NNN.length != 0) return NNN;
 
     // 随便选
-    const priority = [1, 3, 4, 2, 0];
+    const priority = [3, 1, 4, 2];
     for (const p of priority) {
       if (this.combinations.length >= p && this.combinations[p].length != 0) {
         // 使用 reduce 找到最大总和值的组合索引

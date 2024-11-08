@@ -2,10 +2,10 @@ import { AxiosError, HttpStatusCode } from 'axios';
 import chalk from 'chalk';
 import { Page } from 'playwright';
 import { exit } from 'process';
+import { sleep } from 'openai/core.js';
 
 import { Processor } from '../processor.js';
 
-import { sleep } from 'openai/core.js';
 import AIModel, { Num, num2Letter } from '../../ai/AIModel.js';
 import course from '../../api/course.js';
 import Exam, { OptionId, SubjectId } from '../../api/Exam.js';
@@ -265,7 +265,7 @@ export default class ExamProc implements Processor {
 
       console.log(
         '分数(最新/最高/总分)[%]/总分:',
-        `${curScore ?? '?'}/${examScore}/${this.#totalPoints}/${this.#totalScore}`,
+        `(${curScore ?? '?'}/${examScore}/${this.#totalPoints})[%]/${this.#totalScore}`,
       );
 
       return [curScore, examScore];
@@ -328,9 +328,9 @@ export default class ExamProc implements Processor {
 
     // 答过题, 获取已知答案
     if (examScore) {
+      console.log('正在收集历史考试答案...');
       // TODO: 实际上不用每次都去重新获取一遍
       for (const { id } of getSubmission.submissions!) {
-        console.log('正在收集历史考试答案: ', id);
         await this.collectSubmissons(id, exam, subjectResolverList);
       }
     }
@@ -357,14 +357,13 @@ export default class ExamProc implements Processor {
     // 收集正确 或错误答案
     // 需要注意的是, 如果是多选题, 我们无法知道哪些选项是错误的, 哪些是正确的
     for (const { subject_id, answer_option_ids } of submission_data.subjects) {
-      const s = subjects.find(({ id }) => id == subject_id)!;
-      const point = Number(s.point); // point为这道题总分, 百分比
+      const { options } = subjects.find(({ id }) => id == subject_id)!;
       const score = Number(submission_score_data[subject_id]); //百分比
 
       let filterOpts = answer_option_ids;
 
-      if (point == score) {
-        filterOpts = s.options.flatMap(({ id }) =>
+      if (score != 0) {
+        filterOpts = options.flatMap(({ id }) =>
           answer_option_ids.includes(id) ? [] : id,
         );
       }
