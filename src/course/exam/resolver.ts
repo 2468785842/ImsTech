@@ -11,6 +11,7 @@ export const s2s: Record<SubjectType, string> = {
   true_or_false: '选择题',
   single_selection: '单选题',
   multiple_selection: '多选题',
+  short_answer: '简答题',
 };
 
 const table: Partial<

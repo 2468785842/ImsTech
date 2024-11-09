@@ -15,7 +15,8 @@ export type SubjectType =
   | 'text'
   | 'true_or_false'
   | 'single_selection'
-  | 'multiple_selection';
+  | 'multiple_selection'
+  | 'short_answer';
 export type SubjectId = number;
 export type OptionId = number;
 

@@ -7,7 +7,6 @@ class SingleSelection extends BaseSubjectResolver {
   private wrongOptions: Option[] = [];
 
   async addAnswerFilter(_: number, ...optionIds: OptionId[]) {
-
     this.wrongOptions = [
       ...new Set([
         ...this.wrongOptions,
@@ -29,21 +28,24 @@ class SingleSelection extends BaseSubjectResolver {
     }
 
     // only leave one option
-    if (options.length - this.wrongOptions.length == 1) {
-      const opt = options.find((opt) => !this.wrongOptions.includes(opt));
+    if (this.isPass()) {
+      const opt = options.find(
+        ({ id }) => !new Set(this.wrongOptions.map(({ id }) => id)).has(id),
+      );
       if (!opt) throw new Error("impossable: can't find option???");
       return [opt.id];
     }
+    const opts = options.flatMap((opt) =>
+      new Set(this.wrongOptions.map(({ id }) => id)).has(opt.id) ? [] : opt,
+    );
 
     const answer = await this.aiModel.getResponse(
       this.type,
       description,
-      options.flatMap((opt) =>
-        this.wrongOptions.includes(opt) ? [] : opt.content,
-      ),
+      opts.map(({ content }) => content),
     );
 
-    return [options[answer].id];
+    return [opts[answer].id];
   }
 
   isPass(): boolean {
