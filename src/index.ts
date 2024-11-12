@@ -15,7 +15,8 @@ import chalk from 'chalk';
 (async () => {
   await AIModel.init(true);
 
-  const headless = !!process.env._HEAD_LESS;
+  const { headless } = Config.browser;
+
   const browser = await chromium.use(StealthPlugin()).launch({
     executablePath: process.env._CHROME_DEV!,
     headless,

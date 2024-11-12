@@ -14,18 +14,7 @@ class AIModel {
   static async init(agree: boolean = false): Promise<AIModel | null> {
     if (AIModel.instance) return AIModel.instance;
 
-    const { _API: api, _KEY: key, _MODEL: model, _Qps } = process.env;
-
-    let Qps = Number(_Qps) || 1;
-
-    console.log('检查AI设置:');
-
-    const checkUnicode = (v: any) => (v ? chalk.green('✓') : chalk.red('✘'));
-
-    console.log('API', checkUnicode(api));
-    console.log('Key', checkUnicode(key));
-    console.log('Model', checkUnicode(model));
-    console.log('Qps:', Qps);
+    const { api, key, model, qps } = Config.ai;
 
     if (!(api && key && model)) {
       console.log('不自动答题(AI未加载)');
@@ -41,7 +30,7 @@ class AIModel {
       }
     }
 
-    AIModel.instance = new AIModel(api, key, model, Qps);
+    AIModel.instance = new AIModel(api, key, model, qps);
     return AIModel.instance;
   }
 

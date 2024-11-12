@@ -13,6 +13,7 @@ import { parseDOMText } from '../../utils.js';
 import BaseSubjectResolver from '../exam/BaseSubjectResolver.js';
 import { createResolver, hasResolver, s2s } from '../exam/resolver.js';
 import { CourseInfo, CourseType } from '../search.js';
+import Config from '../../config.js';
 
 /**
  * score当你全部答对就是100, point是得分百分比, 比如总分112, 实际你exam_score最大为: 100
@@ -21,7 +22,7 @@ export default class ExamProc implements Processor {
   name: CourseType = 'exam';
 
   #courseInfo?: CourseInfo;
-  #totalPoints: number = 100;
+  #totalPoints: number = Config.totalPoints;
   #totalScore: number = -1;
 
   // config
@@ -282,10 +283,15 @@ export default class ExamProc implements Processor {
   ) {
     let getSubmission = await exam.getSubmissions();
 
-    while (getSubmission.submissions?.find(({ score }) => score == null)) {
+    let i = 0;
+    while (
+      i < 5 &&
+      getSubmission.submissions?.find(({ score }) => score == null)
+    ) {
       console.log('等待系统评分...');
       await sleep(10000);
       getSubmission = await exam.getSubmissions();
+      i++;
     }
 
     const [_, examScore] = await this.getHistoryScore(getSubmission);

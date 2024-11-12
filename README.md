@@ -1,24 +1,5 @@
 ### 使用nodejs, playwright构建的国开自动刷课
 
-#### 需要注意: 点击太快会被检测异常行为, 需要等待一个小时
-
-```javascript
-// index.ts 文件中, 可以修改这段配置
-await chromium.use(StealthPlugin()).launch({
-    executablePath: process.env._CHROME_DEV!,
-    // true 不显示浏览器,
-    // 当你登陆过一次存了cookie可以开启,
-    // cookie存在项目根目录下的 .cookie.txt 文件中
-    headless: true,
-    slowMo: 1000, // 点击速率, 搞太快会限制访问
-    // 最新Chrome不支持旧的headless, 需要添加以下两行代码,覆盖设置
-    // ignoreDefaultArgs: ['--headless=old'],
-    // args: ['--headless=new']
-  });
-```
-
----
-
 #### 准备
 - 安装 [ChromeDev](https://www.google.com/intl/zh-CN/chrome/dev/)(如果你自己有Chrome不需要)
 - 安装 [Node.js](https://nodejs.org/zh-cn)
@@ -32,6 +13,10 @@ _PASSWORD="xxx" # 密码
 
 _CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # chrome dev路径, 或者你自己的Chrome安装目录
 
+_SLOW_MO=1000 # 可选 执行间隔默认1000(需要注意: 点击太快会被检测异常行为, 需要等待一个小时, 将此设置调大即可)单位为毫秒
+_HEAD_LESS=1 # 可选 是否无头模式默认为false
+_PLAY_RATE=16 # 可选 视频播放倍速默认8
+_TOTAL_POINTS=100 # 可选 考试分数及格线百分比, 当AI答题结果分数超过会结束当前考试,进行下一项
 
 ########## 以下功能不稳定, 有问题提 issue ##########
 

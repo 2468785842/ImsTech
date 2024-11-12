@@ -6,6 +6,7 @@ import ProgressBar from 'progress';
 import { CourseType, Processor } from '../processor.js';
 
 import { waitForSPALoaded } from '../../utils.js';
+import Config from '../../config.js';
 
 // 以后考虑直接调用接口, 不播放视频
 // {start: 233, end: 286}
@@ -35,11 +36,9 @@ export default class OnlineVideoProc implements Processor {
 
     await tryToShowControls();
 
-    const playRate = 16;
     await page.evaluate(
-      `document.getElementsByTagName("video")[0].playbackRate = ${playRate}`,
+      `document.getElementsByTagName("video")[0].playbackRate = ${Config.playRate}`,
     );
-    console.log(playRate, '倍速');
 
     const getVideoTime = async () => {
       const display = page.locator('div.mvp-time-display');
