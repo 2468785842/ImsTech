@@ -4,12 +4,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 export default {
   packagerConfig: {
     asar: true,
-    extraFiles: [
-      {
-        from: '../', // 指向 workspace 根目录
-        to: 'imstechauto',
-      },
-    ],
+    prune: false,
   },
   rebuildConfig: {},
   makers: [
