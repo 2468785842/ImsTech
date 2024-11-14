@@ -31,7 +31,7 @@ jobs:
         shell: pwsh
         run: |
           # 查找 dist 目录中的第一个 MSI 文件
-          $msiPath = (Get-ChildItem -Path dist -Filter *.msi | Select-Object -First 1).FullName
+          $msiPath = (Get-ChildItem -Path ImsTechAutoElectron/out/make -Filter *.msi -Recurse | Select-Object -First 1).FullName
           if (-Not $msiPath) {
             Write-Error "No MSI file found in dist directory."
             exit 1
