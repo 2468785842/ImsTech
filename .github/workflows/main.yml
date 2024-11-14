@@ -20,7 +20,7 @@ jobs:
         run: npm install
 
       - name: Build and package Electron app
-        run: cd ImsTechAutoElectron npm link .. && npm link imstechauto && npm install && npm run make
+        run: cd ImsTechAutoElectron && npm link .. && npm link imstechauto && npm install && npm run make
         
 
       # 添加调试步骤：查看生成的文件
