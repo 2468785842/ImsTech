@@ -40,7 +40,7 @@ jobs:
           msiexec /i $msiPath /quiet /qn /norestart /log install_log.txt
 
       - name: Upload Installation Log
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: msi-install-log
           path: install_log.txt  # 上传安装日志
