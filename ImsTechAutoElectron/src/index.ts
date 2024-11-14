@@ -1,28 +1,26 @@
 import { app, BrowserWindow } from 'electron';
-// import { init } from 'imstechauto';
+import { Config, init, Login } from 'imstechauto';
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
 {
   const { appendSwitch } = app.commandLine;
-  appendSwitch('inspect', '0');
   appendSwitch('remote-debugging-port', '9222');
   appendSwitch('--no-sandbox');
 }
 
 async function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 900,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false, // 禁用 Node.js Integration
+      contextIsolation: true, // 启用上下文隔离
     },
   });
 
   // 加载应用的本地文件
-  // await mainWindow.loadFile('index.html');
-  await mainWindow.loadURL('https://www.baidu.com');
+  await mainWindow.loadURL(Config.default.urls.login());
 
   mainWindow.webContents.on('did-finish-load', async () => {
     console.log('Main window finished loading');
@@ -48,16 +46,10 @@ async function connectToElectron() {
     .use(StealthPlugin())
     .connectOverCDP('http://localhost:9222');
   // 获取浏览器页面
-  const page = browser.contexts()[0].pages()[0];
 
   // 在页面中执行操作
-  await page.goto('https://www.google.com');
-  console.log('goto baidu');
-  page.waitForTimeout(1000 * 5);
-
-  // await init(browser);
-  // 关闭浏览器
-  await browser.close();
+  const page = await Login.login(browser);
+  await init(page);
 }
 
 app.whenReady().then(createWindow);

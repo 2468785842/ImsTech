@@ -9,7 +9,13 @@ const { _PROXY_HOST: host, _PROXY_PORT: port } = process.env;
 const { _API: api, _KEY: key, _MODEL: model, _Qps } = process.env;
 const qps = Number(_Qps) || 1;
 
+const { _ACCOUNT: account, _PASSWORD: password } = process.env;
+
 const Config = {
+  user: {
+    account,
+    password,
+  },
   urls: {
     login: () => BASE_SSO_URL,
     user: () => `${API_BASE_URL}/user`,
@@ -25,7 +31,7 @@ const Config = {
     slowMo: Number(process.env._SLOW_MO ?? 1000),
   },
   playRate: Number(process.env._PLAY_RATE ?? 8),
-  totalPoints: Number(process.env._TOTAL_POINTS ?? 100)
+  totalPoints: Number(process.env._TOTAL_POINTS ?? 100),
 };
 
 const checkUnicode = (v: any) => (v ? chalk.green('✓') : chalk.red('✘'));
@@ -33,7 +39,7 @@ const checkUnicode = (v: any) => (v ? chalk.green('✓') : chalk.red('✘'));
 console.log('无头模式:', checkUnicode(Config.browser.headless));
 
 console.log('视频倍速:', Config.playRate);
-console.log('考试分数及格线(百分比):', Config.totalPoints)
+console.log('考试分数及格线(百分比):', Config.totalPoints);
 
 console.log('检查AI设置:');
 console.log('API', checkUnicode(Config.ai.api));

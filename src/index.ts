@@ -2,20 +2,18 @@ import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import 'source-map-support/register.js';
 
+import chalk from 'chalk';
+import { Page } from 'playwright-core';
+import { format } from 'util';
 import * as Activity from './activity.js';
+import AIModel from './ai/AIModel.js';
+import Config, { API_BASE_URL } from './config.js';
 import * as Processor from './course/processor.js';
 import * as Search from './course/search.js';
-import { waitForSPALoaded } from './utils.js';
-import Config, { API_BASE_URL } from './config.js';
 import { filterCookies, login, storeCookies } from './login.js';
-import AIModel from './ai/AIModel.js';
-import { format } from 'util';
-import chalk from 'chalk';
-import { Browser } from 'playwright-core';
+import { waitForSPALoaded } from './utils.js';
 
-export async function init(browser: Browser) {
-  const page = await login(browser);
-
+async function init(page: Page) {
   // https://lms.ouchn.cn/user/index 返回会携带 WAF Cookie
   const cs = await page.evaluate(
     async () => await (window as any).cookieStore.getAll(),
@@ -128,7 +126,9 @@ export async function init(browser: Browser) {
   console.log('program end...');
 }
 
-if (require.main == module) {
+import { pathToFileURL } from 'url';
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   (async () => {
     await AIModel.init(true);
 
@@ -142,8 +142,16 @@ if (require.main == module) {
       ignoreDefaultArgs: headless ? ['--headless=old'] : [],
       args: headless ? ['--headless=new'] : [],
     });
-    await init(browser);
+
+    const page = await login(browser);
+    await init(page);
     // Teardown
     await browser.close();
   })();
 }
+
+export { init };
+
+export * as Config from './config.js';
+export * as Login from './login.js';
+export * as Utils from './utils.js';

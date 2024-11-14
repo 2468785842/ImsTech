@@ -2,10 +2,11 @@
 /**/.playwright
 /**/node_modules
 /**/dist
-/**/.env
-/**/package-lock.json
-
-.cookies.txt
 /**/.idea
 /**/.VSCodeCounter
 /**/out
+
+package-lock.json
+
+.env
+.cookies.txt

@@ -4,24 +4,21 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 export default {
   packagerConfig: {
     asar: true,
+    extraFiles: [
+      {
+        from: '../', // 指向 workspace 根目录
+        to: 'imstechauto',
+      },
+    ],
   },
   rebuildConfig: {},
   makers: [
     {
+      name: '@electron-forge/maker-wix',
+    },
+    {
       name: '@electron-forge/maker-squirrel',
-      config: {},
-    },
-    {
-      name: '@electron-forge/maker-zip',
-      platforms: ['darwin'],
-    },
-    {
-      name: '@electron-forge/maker-deb',
-      config: {},
-    },
-    {
-      name: '@electron-forge/maker-rpm',
-      config: {},
+      platforms: ['win32'],
     },
   ],
   plugins: [
@@ -41,4 +38,11 @@ export default {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
+  hooks: {
+    packageAfterCopy: async (forgeConfig, buildPath) => {
+      await bundle(__dirname, buildPath, {
+        root: path.join(__dirname, '../..'),
+      });
+    },
+  },
 };

@@ -35,11 +35,21 @@ async function login(browser: Browser) {
 
   console.log('需要登陆');
 
-  await page.getByPlaceholder('请输入登录名').fill(process.env._ACCOUNT!);
-  await page.getByPlaceholder('请输入登录密码').fill(process.env._PASSWORD!);
+  const { account, password } = Config.user;
+
+  if (account && password) {
+    await page.getByPlaceholder('请输入登录名').fill(account);
+    await page.getByPlaceholder('请输入登录密码').fill(password);
+  } else {
+    console.warn('缺少账号或密码, 需要手动输入');
+  }
+
   const agree = page.locator('#agreeCheckBox').first();
   await agree.setChecked(true);
-  await page.getByRole('button', { name: '登录' }).click();
+
+  if (account && password) {
+    await page.getByRole('button', { name: '登录' }).click();
+  }
 
   // 等待跳转, timeout 可能被父级 page option覆盖呢..., 在这里显式声明好了
   await page.waitForURL(Config.urls.home(), { timeout: 1000 * 60 * 5 });
@@ -87,4 +97,4 @@ function filterCookies(cookies: Array<Cookie>, names: string[]) {
   return cookies.filter((cookie) => names.includes(cookie.name));
 }
 
-export { login, storeCookies, restoreCookies, filterCookies };
+export { filterCookies, login, restoreCookies, storeCookies };
