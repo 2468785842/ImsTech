@@ -20,12 +20,34 @@ jobs:
         run: npm install
 
       - name: Build and package Electron app
-        run: cd ImsTechAutoElectron && npm link .. && npm link imstechauto && npm install && npm run make
-        
-      # 上传所有生成的文件
+        run: |
+          cd ImsTechAutoElectron
+          npm link ..
+          npm link imstechauto
+          npm install
+          npm run make
+
+      - name: Find and Install MSI
+        shell: pwsh
+        run: |
+          # 查找 dist 目录中的第一个 MSI 文件
+          $msiPath = (Get-ChildItem -Path dist -Filter *.msi | Select-Object -First 1).FullName
+          if (-Not $msiPath) {
+            Write-Error "No MSI file found in dist directory."
+            exit 1
+          }
+          # 安装找到的 MSI 文件，并记录日志
+          msiexec /i $msiPath /quiet /qn /norestart /log install_log.txt
+
+      - name: Upload Installation Log
+        uses: actions/upload-artifact@v2
+        with:
+          name: msi-install-log
+          path: install_log.txt  # 上传安装日志
+
       - name: Upload Artifacts
         if: success()
         uses: actions/upload-artifact@v3
         with:
-          name: ElectronApp-Windows
-          path: ImsTechAutoElectron/out/make/**/*
+          name: imstechauto.msi
+          path: ImsTechAutoElectron/out/make/**/*.msi
