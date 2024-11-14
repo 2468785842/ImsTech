@@ -33,11 +33,4 @@ export default {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
-  hooks: {
-    packageAfterCopy: async (forgeConfig, buildPath) => {
-      await bundle(__dirname, buildPath, {
-        root: path.join(__dirname, '../..'),
-      });
-    },
-  },
 };
