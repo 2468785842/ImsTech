@@ -1,4 +1,4 @@
-name: Build Electron App
+name: Build Electron App for Windows
 
 on:
   push:
@@ -12,40 +12,31 @@ jobs:
   build:
     runs-on: windows-latest
 
-    strategy:
-      matrix:
-        # 如果需要为多个平台编译，可以添加更多操作系统
-        os: [windows-latest]
-        # 默认情况下，Electron Forge 会根据当前系统生成相应的安装包
-        # 比如在 macOS 上生成 .dmg 文件，在 Windows 上生成 .exe 文件
-
     steps:
-      # 检出代码
       - name: Check out repository
         uses: actions/checkout@v2
 
-      # 设置 Node.js 版本
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '23'
+          node-version: '16'
 
-      # 安装依赖
       - name: Install dependencies
         run: npm install
 
-      # 编译和打包应用
       - name: Build and package Electron app
         run: npm run make
         env:
-          # 设置一些必要的环境变量（如果有的话）
-          # 例如：API_KEY: ${{ secrets.API_KEY }}
-          ELECTRON_SKIP_BINARY_DOWNLOAD: 'true' # 可选，加快构建速度
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 'true'
 
-      # 将打包后的文件上传为 GitHub Actions 的 Artifacts
+      # 添加调试步骤：查看生成的文件
+      - name: List output files
+        run: dir out\make\ /s
+
+      # 上传所有生成的文件
       - name: Upload Artifacts
         if: success()
         uses: actions/upload-artifact@v2
         with:
-          name: ElectronApp
-          path: out/make/*  # electron-forge 默认输出路径为 out/make
+          name: ElectronApp-Windows
+          path: out/make/**/*
