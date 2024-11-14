@@ -1,0 +1,42 @@
+name: Build Electron App for Windows
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and package Electron app
+        run: npm run make
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 'true'
+
+      # 添加调试步骤：查看生成的文件
+      - name: List output files
+        run: dir out\make\ /s
+
+      # 上传所有生成的文件
+      - name: Upload Artifacts
+        if: success()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ElectronApp-Windows
+          path: out/make/**/*
