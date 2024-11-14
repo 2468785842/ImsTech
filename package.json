@@ -1,13 +1,13 @@
 {
   "name": "imstechauto",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "this is imstech auto control script",
+  "main": "./dist/src/index.js",
   "type": "module",
   "scripts": {
     "start": "tsc && node dist/src/index.js"
   },
-  "author": "",
+  "author": "lidong",
   "license": "MIT",
   "overrides": {
     "whatwg-url": "^13.0.0"

@@ -11,21 +11,9 @@ import { filterCookies, login, storeCookies } from './login.js';
 import AIModel from './ai/AIModel.js';
 import { format } from 'util';
 import chalk from 'chalk';
+import { Browser } from 'playwright-core';
 
-(async () => {
-  await AIModel.init(true);
-
-  const { headless } = Config.browser;
-
-  const browser = await chromium.use(StealthPlugin()).launch({
-    executablePath: process.env._CHROME_DEV!,
-    headless,
-    slowMo: 1000, // 搞太快会限制访问,
-    timeout: 1000 * 60 * 2,
-    ignoreDefaultArgs: headless ? ['--headless=old'] : [],
-    args: headless ? ['--headless=new'] : [],
-  });
-
+export async function init(browser: Browser) {
   const page = await login(browser);
 
   // https://lms.ouchn.cn/user/index 返回会携带 WAF Cookie
@@ -138,6 +126,24 @@ import chalk from 'chalk';
     });
   }
   console.log('program end...');
-  // Teardown
-  await browser.close();
-})();
+}
+
+if (require.main == module) {
+  (async () => {
+    await AIModel.init(true);
+
+    const { headless } = Config.browser;
+
+    const browser = await chromium.use(StealthPlugin()).launch({
+      executablePath: process.env._CHROME_DEV!,
+      headless,
+      slowMo: 1000, // 搞太快会限制访问,
+      timeout: 1000 * 60 * 2,
+      ignoreDefaultArgs: headless ? ['--headless=old'] : [],
+      args: headless ? ['--headless=new'] : [],
+    });
+    await init(browser);
+    // Teardown
+    await browser.close();
+  })();
+}
