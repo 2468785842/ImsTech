@@ -39,6 +39,20 @@ jobs:
           # 安装找到的 MSI 文件，并记录日志
           msiexec /i $msiPath /quiet /qn /norestart /log install_log.txt
 
+      - name: Install GPG
+        run: |
+          choco install gnupg
+
+      - name: Import GPG keys
+        run: |
+          echo "${{ secrets.PRIVATE_KEY }}" | gpg --batch --yes --import
+          echo "${{ secrets.PUBLIC_KEY }}" | gpg --batch --yes --import
+  
+      - name: Sign the MSI file
+        run: |
+          cd ./out/make/wix/x64
+          echo "${{ secrets.GPG_PASSWORD }}" | gpg --batch --yes --armor --detach-sign --output imstech-auto-electron.msi.sig imstech-auto-electron.msi
+
       - name: Upload Installation Log
         uses: actions/upload-artifact@v3
         with:
@@ -52,4 +66,4 @@ jobs:
           name: imstechauto
           path: |
             ImsTechAutoElectron/out/make/**/*.msi
-            ImsTechAutoElectron/out/make/**/*.exe
+            ImsTechAutoElectron/out/make/**/*.msi.sig
