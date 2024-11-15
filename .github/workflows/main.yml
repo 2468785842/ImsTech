@@ -17,15 +17,15 @@ jobs:
           node-version: '21'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install -g yarn
+          yarn install
 
       - name: Build and package Electron app
         run: |
           cd ImsTechAutoElectron
-          npm link ..
-          npm link imstechauto
-          npm install
-          npm run make
+          yarn install
+          yarn make
 
       - name: Find and Install MSI
         shell: pwsh
@@ -49,5 +49,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v3
         with:
-          name: imstechauto.msi
-          path: ImsTechAutoElectron/out/make/**/*.msi
+          name: imstechauto
+          path: |
+            ImsTechAutoElectron/out/make/**/*.msi
+            ImsTechAutoElectron/out/make/**/*.exe

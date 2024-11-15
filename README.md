@@ -35,17 +35,19 @@ _PROXY_PORT=8080
 ```
 
 #### 运行
+- 安装yarn:
+  npm install -g yarn
 - 设置代理: 
   ```shell
-  npm config set registry https://registry.npmmirror.com
+  yarn config set registry https://registry.npmmirror.com
   ```
 - 安装库:
   ```shell
-  npm install
+  yarn install
   ```
 - 运行: 
   ```shell
-  npm run start
+  yarn run start
   ```
 
 #### 注意
