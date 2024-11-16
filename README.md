@@ -1,106 +1,101 @@
-### 使用Nodejs, Playwright构建的国开自动刷课程序
+### 国开自动刷课程序 (基于 Node.js 和 Playwright)
 
-### 可以直接下载使用Electron打包的版本
+### 可直接下载并使用 Electron 打包版
+点击以下链接下载可执行安装程序：
 [ImsTechAuto](https://github.com/2468785842/ImsTech/releases/latest/download/ims-tech-auto-1.0.0.Setup.exe)
 
-### 或从源码运行
+### 或者从源码运行
 
-#### 准备
-- 安装 [ChromeDev](https://www.google.com/intl/zh-CN/chrome/dev/)(如果你自己有Chrome不需要)
-- 安装 [Node.js](https://nodejs.org/zh-cn)
+#### 准备工作
+1. 安装 [Chrome Dev](https://www.google.com/intl/zh-CN/chrome/dev/)（如果已安装 Chrome，可以跳过）
+2. 安装 [Node.js](https://nodejs.org/zh-cn)
 
 #### 配置
-- 在项目根目录下添加`.env`文件, 写入
+1. 在项目的根目录创建一个 `.env` 文件，并添加以下内容：
 ```properties
+_ACCOUNT="xxx" # 你的账号
+_PASSWORD="xxx" # 你的密码
 
-_ACCOUNT="xxx" # 账号
-_PASSWORD="xxx" # 密码
+_CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # Chrome Dev 安装路径，或使用你自己的 Chrome 安装路径
 
-_CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # chrome dev路径, 或者你自己的Chrome安装目录
+_SLOW_MO=1000 # 可选，执行间隔，默认为1000ms。调整此值可以避免被检测为异常行为。
+_HEAD_LESS=1 # 可选，是否启用无头模式，默认不启用。
+_PLAY_RATE=16 # 可选，视频播放倍速，默认倍速为 8。
+_TOTAL_POINTS=100 # 可选，考试及格分数，AI 答题分数超过此值时会自动结束当前考试。
 
-_SLOW_MO=1000 # 可选 执行间隔默认1000(需要注意: 点击太快会被检测异常行为, 需要等待一个小时, 将此设置调大即可)单位为毫秒
-_HEAD_LESS=1 # 可选 是否无头模式默认为false
-_PLAY_RATE=16 # 可选 视频播放倍速默认8
-_TOTAL_POINTS=100 # 可选 考试分数及格线百分比, 当AI答题结果分数超过会结束当前考试,进行下一项
+########## 以下功能不稳定，如有问题请提交 issue ##########
 
-########## 以下功能不稳定, 有问题提 issue ##########
-
-# 可选 不设置不开启自动答题
-# 目前只会帮助回答可尝试次数为999的exam
-# AI 答题, 目前支持单选, 判断, 和随机题目. 不支持多选和简答题等等..
-
-_API="https://spark-api-open.xf-yun.com/v1" # api 接口
-_KEY="nxetovst4bY1v0hUIk8L:NxYXC44THZHkVUmWLLGb" # 密钥, 此为演示, 不可用
+# 可选，开启自动答题功能
+# 目前仅支持单选题、判断题和随机题目，暂不支持多选和简答题。
+_API="https://spark-api-open.xf-yun.com/v1" # AI 答题 API 接口
+_KEY="nxetovst4bY1v0hUIk8L:NxYXC44THZHkVUmWLLGb" # API 密钥（此为示例，无法使用）
 _MODEL="lite" # 模型名
-_Qps=2 # 每秒查询率, 可选 默认为1
+_Qps=2 # 可选，每秒查询次数，默认为 1。
 
-# 可选 设置代理, 此为ai和axios的代理, 浏览器不会使用
+# 可选，设置代理（仅用于 AI 和 axios，浏览器不受影响）
 _PROXY_HOST=127.0.0.1
 _PROXY_PORT=8080
 ```
 
-#### 运行
-- 安装yarn:
-  npm install -g yarn --registry=https://registry.npmmirror.com
+#### 运行程序
+1. 安装 `yarn`：
+   ```bash
+   npm install -g yarn --registry=https://registry.npmmirror.com
+   ```
 
-- 设置代理: 
-  ```shell
-  yarn config set registry https://registry.npmmirror.com
-  ```
-- 进入core目录:
-   ```shell
+2. 配置镜像源：
+   ```bash
+   yarn config set registry https://registry.npmmirror.com
+   ```
+
+3. 进入 `core` 目录：
+   ```bash
    cd core
-  ```
+   ```
 
-- 安装库:
-  ```shell
-  yarn install
-  ```
-- 运行: 
-  ```shell
-  yarn start
-  ```
+4. 安装依赖库：
+   ```bash
+   yarn install
+   ```
 
+5. 启动程序：
+   ```bash
+   yarn start
+   ```
 
-#### 注意
-- 操作浏览器:
-  - 当登录时进行人机验证需要手动操作
-  - 登录完成之后最好不要碰浏览器, 不然可能会出现意外的错误
-- 更换浏览器内核:
-  - firefox:
-    - 浏览器置于后台会暂停加载: 解决办法`无`
-    - 缓存无法正常工作,每次需要重新登录: 解决办法`无`
-  - webkit: 无
-  - chromium: 无
+#### 注意事项
+- **操作浏览器时：**
+  - 登录时需要手动处理人机验证。
+  - 登录完成后，尽量不要操作浏览器，以免发生错误。
   
+- **浏览器兼容性：**
+  - **Firefox**：浏览器置于后台时暂停加载，且每次登录需要重新输入。
+  - **Webkit 和 Chromium**：无已知问题。
+
 #### 代码风格
-* 使用 Prettier 进行代码格式化。请确保在提交之前格式化您的代码。使用以下命令格式化
-* `npx prettier --write ./src`
+- 使用 Prettier 格式化代码。提交前请确保代码已格式化。可以使用以下命令格式化：
+  ```bash
+  npx prettier --write ./src
+  ```
 
+### Electron 打包
 
-### Electron打包
+#### 配置淘宝镜像
+设置 Electron 镜像源：
+```bash
+$ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+$ELECTRON_CUSTOM_DIR="v{{ version }}"
+```
 
-#### 淘宝镜像
-* `$ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"`
-* `$ELECTRON_CUSTOM_DIR="v{{ version }}"`
-
-#### 可执行文件(不需要设置Chromium, Nodejs打包完成, 安装直接可以运行)
-- 运行electron:
-  ```shell
+#### 打包成可执行文件
+- 启动 Electron：
+  ```bash
   yarn start:electron
   ```
 
-- 打包为可执行文件:
-  ```shell
+- 打包应用：
+  ```bash
   yarn make:electron
   ```
 
-#### 签名
-```shell
-gpg --batch --yes --armor --detach-sign --output ./electron/out/make/wix/x64/@ims-tech-auto-electron.msi.sig ./electron/out/make/wix/x64/@ims-tech-auto-electron.msi
-```
-
-#### 重新安装
-* `msiexec /i ./electron/out/make/wix/x64/@ims-tech-auto-electron.msi REINSTALL=ALL REINSTALLMODE=vomus`
-
-#### 下载和打包electron需要mirror或全程科学代理
+#### 下载和打包 Electron 时需要使用镜像或科学上网工具。
