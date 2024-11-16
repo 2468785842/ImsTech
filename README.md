@@ -1,7 +1,7 @@
 ### 使用Nodejs, Playwright构建的国开自动刷课程序
 
 ### 可以直接下载使用Electron打包的版本
-[ImsTechAuto](https://github.com/2468785842/ImsTech/releases/latest)
+[ImsTechAuto](https://github.com/2468785842/ImsTech/releases/latest/download/v1.0.0/ims-tech-auto-1.0.0.Setup.exe)
 
 ### 或从源码运行
 
