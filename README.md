@@ -1,4 +1,9 @@
-### 使用nodejs, playwright构建的国开自动刷课
+### 使用Nodejs, Playwright构建的国开自动刷课程序
+
+### 可以直接下载使用Electron打包的版本
+[ImsTechAuto](https://github.com/2468785842/ImsTech/releases/latest)
+
+### 或从源码运行
 
 #### 准备
 - 安装 [ChromeDev](https://www.google.com/intl/zh-CN/chrome/dev/)(如果你自己有Chrome不需要)
@@ -36,19 +41,26 @@ _PROXY_PORT=8080
 
 #### 运行
 - 安装yarn:
-  npm install -g yarn
+  npm install -g yarn --registry=https://registry.npmmirror.com
+
 - 设置代理: 
   ```shell
   yarn config set registry https://registry.npmmirror.com
   ```
+- 进入core目录:
+   ```shell
+   cd core
+  ```
+
 - 安装库:
   ```shell
   yarn install
   ```
 - 运行: 
   ```shell
-  yarn run start
+  yarn start
   ```
+
 
 #### 注意
 - 操作浏览器:
@@ -64,3 +76,31 @@ _PROXY_PORT=8080
 #### 代码风格
 * 使用 Prettier 进行代码格式化。请确保在提交之前格式化您的代码。使用以下命令格式化
 * `npx prettier --write ./src`
+
+
+### Electron打包
+
+#### 淘宝镜像
+* `$ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"`
+* `$ELECTRON_CUSTOM_DIR="v{{ version }}"`
+
+#### 可执行文件(不需要设置Chromium, Nodejs打包完成, 安装直接可以运行)
+- 运行electron:
+  ```shell
+  yarn start:electron
+  ```
+
+- 打包为可执行文件:
+  ```shell
+  yarn make:electron
+  ```
+
+#### 签名
+```shell
+gpg --batch --yes --armor --detach-sign --output ./electron/out/make/wix/x64/@ims-tech-auto-electron.msi.sig ./electron/out/make/wix/x64/@ims-tech-auto-electron.msi
+```
+
+#### 重新安装
+* `msiexec /i ./electron/out/make/wix/x64/@ims-tech-auto-electron.msi REINSTALL=ALL REINSTALLMODE=vomus`
+
+#### 下载和打包electron需要mirror或全程科学代理

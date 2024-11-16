@@ -33,6 +33,10 @@ async function login(browser: Browser) {
     return page;
   }
 
+  if (Config.browser.headless) {
+    throw '需要手动进行验证, 请关闭无头模式';
+  }
+
   console.log('需要登陆');
 
   const { account, password } = Config.user;

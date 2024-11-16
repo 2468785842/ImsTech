@@ -18,46 +18,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install -g yarn
           yarn install
 
       - name: Build and package Electron app
         run: |
-          cd ImsTechAutoElectron
-          yarn install
-          yarn make
-
-      - name: Find and Install MSI
-        shell: pwsh
-        run: |
-          # 查找 dist 目录中的第一个 MSI 文件
-          $msiPath = (Get-ChildItem -Path ImsTechAutoElectron/out/make -Filter *.msi -Recurse | Select-Object -First 1).FullName
-          if (-Not $msiPath) {
-            Write-Error "No MSI file found in dist directory."
-            exit 1
-          }
-          # 安装找到的 MSI 文件，并记录日志
-          msiexec /i $msiPath /quiet /qn /norestart /log install_log.txt
-
-      - name: Install GPG
-        run: |
-          choco install gnupg
-
-      - name: Import GPG keys
-        run: |
-          echo "${{ secrets.PRIVATE_KEY }}" | gpg --batch --yes --import
-          echo "${{ secrets.PUBLIC_KEY }}" | gpg --batch --yes --import
-  
-      - name: Sign the MSI file
-        run: |
-          cd ./out/make/wix/x64
-          echo "${{ secrets.GPG_PASSWORD }}" | gpg --batch --yes --armor --detach-sign --output imstech-auto-electron.msi.sig imstech-auto-electron.msi
-
-      - name: Upload Installation Log
-        uses: actions/upload-artifact@v3
-        with:
-          name: msi-install-log
-          path: install_log.txt  # 上传安装日志
+          yarn make:electron
 
       - name: Upload Artifacts
         if: success()
@@ -65,5 +30,4 @@ jobs:
         with:
           name: imstechauto
           path: |
-            ImsTechAutoElectron/out/make/**/*.msi
-            ImsTechAutoElectron/out/make/**/*.msi.sig
+            ImsTechAutoElectron/out/make/**/*.exe

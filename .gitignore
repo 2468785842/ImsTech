@@ -7,6 +7,6 @@
 /**/out
 
 package-lock.json
-
+yarn.lock
 .env
 .cookies.txt

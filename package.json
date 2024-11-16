@@ -1,34 +1,45 @@
 {
-  "name": "imstechauto",
+  "name": "ims-tech-auto",
   "version": "1.0.0",
-  "description": "this is imstech auto control script",
+  "description": "this is imstech auto program",
   "main": "./dist/src/index.js",
   "type": "module",
-  "scripts": {
-    "start": "tsc && node dist/src/index.js"
-  },
   "author": "lidong",
   "license": "MIT",
-  "overrides": {
-    "whatwg-url": "^13.0.0"
+  "private": true,
+  "scripts": {
+    "build": "tsc -b core && tsc",
+    "start": "yarn workspace @ims-tech-auto/core start",
+    "start:electron": "yarn build && electron-forge start",
+    "package:electron": "yarn build && electron-forge package",
+    "make:electron": "yarn build && electron-forge make"
   },
+  "workspaces": [
+    "core"
+  ],
   "devDependencies": {
+    "@electron-forge/cli": "^7.5.0",
+    "@electron-forge/maker-deb": "^7.5.0",
+    "@electron-forge/maker-rpm": "^7.5.0",
+    "@electron-forge/maker-squirrel": "^7.5.0",
+    "@electron-forge/maker-wix": "^7.5.0",
+    "@electron-forge/maker-zip": "^7.5.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.5.0",
+    "@electron-forge/plugin-fuses": "^7.5.0",
+    "@electron/fuses": "^1.8.0",
     "@playwright/test": "^1.48.1",
-    "@types/node": "^20.12.11",
-    "@types/progress": "^2.0.7",
-    "dotenv": "^16.4.5",
+    "@types/node": "^22.9.0",
+    "electron": "^33.2.0",
     "prettier": "^3.3.3",
-    "source-map-support": "^0.5.21",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "axios": "^1.7.7",
-    "chalk": "^5.3.0",
-    "openai": "^4.67.3",
+    "source-map-support": "^0.5.21",
+    "electron-squirrel-startup": "^1.0.1",
     "playwright": "^1.44.0",
     "playwright-extra": "^4.3.6",
-    "progress": "^2.0.3",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "@ims-tech-auto/core": "^1.0.0"
   }
 }
