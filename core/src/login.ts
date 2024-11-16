@@ -1,10 +1,11 @@
 import { Browser, Cookie } from 'playwright';
 
 import * as fs from 'fs';
+import path from 'path';
 
 import Config from './config.js';
 
-const cookieFilename = './.cookies.txt';
+const cookieFilename = path.join(process.cwd(), '.cookies.txt');
 
 async function login(browser: Browser) {
   const context =
