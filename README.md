@@ -75,7 +75,7 @@ _PROXY_PORT=8080
 #### 代码风格
 - 使用 Prettier 格式化代码。提交前请确保代码已格式化。可以使用以下命令格式化：
   ```bash
-  npx prettier --write ./src
+  npx prettier --write ./src ./core/src
   ```
 
 ### Electron 打包
