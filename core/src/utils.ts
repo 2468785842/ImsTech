@@ -21,6 +21,7 @@ async function waitForSPALoaded(page: Page) {
       document.querySelector('#ngProgress');
     return progressBar && progressBar.style.width === '0%'; // 判断进度是否完成
   });
+  await page.waitForTimeout(500);
 }
 
 function input(query: string) {
