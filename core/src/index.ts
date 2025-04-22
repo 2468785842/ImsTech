@@ -129,7 +129,7 @@ async function init(page: Page) {
 import { pathToFileURL } from 'url';
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  let main = async () => {
+  (async () => {
     await AIModel.init(true);
 
     const { headless } = Config.browser;
@@ -144,17 +144,16 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     });
 
     const page = await login(browser);
-    await init(page);
+
+    while (true) {
+      try {
+        await init(page);
+        break;
+      } catch {}
+    }
     // Teardown
     await browser.close();
-  };
-
-  while (true) {
-    try {
-      await main();
-      break;
-    } catch {}
-  }
+  })();
 }
 
 export { init };
