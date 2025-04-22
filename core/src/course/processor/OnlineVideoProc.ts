@@ -35,7 +35,7 @@ export default class OnlineVideoProc implements Processor {
 
     if (await page.locator('video').count()) {
       mediaType = 'video';
-    await tryToShowControls();
+      await tryToShowControls();
     } else if (await page.locator('audio').count()) {
       mediaType = 'audio';
     } else {
