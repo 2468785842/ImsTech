@@ -132,12 +132,12 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   (async () => {
     await AIModel.init(true);
 
-    const { headless } = Config.browser;
+    const { headless, slowMo } = Config.browser;
 
     const browser = await chromium.use(StealthPlugin()).launch({
       executablePath: process.env._CHROME_DEV!,
       headless,
-      slowMo: 1000, // 搞太快会限制访问,
+      slowMo, // 搞太快会限制访问,
       timeout: 1000 * 60 * 2,
       ignoreDefaultArgs: headless ? ['--headless=old'] : [],
       args: headless ? ['--headless=new'] : [],

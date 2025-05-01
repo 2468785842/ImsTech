@@ -152,7 +152,7 @@ async function getUncompletedCourses(
 
     // 完成进度
     const progress = await complete
-      .getAttribute('class', { timeout: 1000 })
+      .getAttribute('class', { timeout: 10000 })
       .then(String)
       .catch(() => 'none');
 
