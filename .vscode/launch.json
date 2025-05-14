@@ -5,7 +5,7 @@
       "request": "launch",
       "name": "Launch via ts-node",
       "runtimeArgs": ["-r", "ts-node/register"],
-      "program": "${workspaceFolder}/src/index.ts",
+      "program": "${workspaceFolder}/core/src/index.ts",
       "skipFiles": ["<node_internals>/**"],
       "preLaunchTask": "tsc"
     }

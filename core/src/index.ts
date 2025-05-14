@@ -31,7 +31,7 @@ async function init(page: Page) {
   await page.getByRole('link', { name: '我的课程' }).click();
   await waitForSPALoaded(page);
 
-  const listItems = await Activity.getActivities(page);
+  const listItems = await Activity.getActivities();
 
   console.log('课程组数量: ', listItems.length);
 
@@ -149,7 +149,10 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       try {
         await init(page);
         break;
-      } catch {}
+      } catch (e) {
+        console.warn('Error:', e);
+        console.warn('retry');
+      }
     }
     // Teardown
     await browser.close();

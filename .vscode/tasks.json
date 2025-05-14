@@ -4,10 +4,13 @@
     {
       "label": "tsc",
       "type": "shell",
-      "command": "tsc",
+      "command": "npx tsc",
       "group": {
         "kind": "build",
         "isDefault": true
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/core"
       },
       "presentation": {
         "reveal": "silent"

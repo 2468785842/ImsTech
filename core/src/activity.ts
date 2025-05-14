@@ -1,4 +1,4 @@
-import { Locator, Page } from 'playwright';
+import Course from '../src/api/course.js';
 
 interface ActivityInfo {
   title: string;
@@ -8,36 +8,16 @@ interface ActivityInfo {
   percent: string;
 }
 
-async function getActivities(page: Page): Promise<ActivityInfo[]> {
-  const liElements = await page.locator('ol.courses li').all();
-  return await Promise.all(
-    liElements.map(async (li: Locator) => {
-      // 标题
-      const title = await li.locator('div.course-title').innerText();
+async function getActivities(): Promise<ActivityInfo[]> {
+  const { courses } = (await Course.getMyCourses(1, 100)).data;
 
-      // 学期
-      const semester = await li
-        .locator('div.course-academic-year-semester')
-        .innerText();
-
-      // 课程代码
-      const code = await li
-        .locator('span[tipsy="course.course_code"]')
-        .innerText();
-
-      // 课程开始时间
-      const startDate = await li
-        .locator('span[ng-bind="course.start_date"]')
-        .innerText();
-
-      // 学习进度
-      const percent = await li
-        .locator('section.percent span[ng-bind="course.completeness + \'%\'"]')
-        .innerText();
-
-      return { title, semester, code, startDate, percent };
-    }),
-  );
+  return courses.map((course: any) => ({
+    title: course.name,
+    semester: course.semester.name,
+    code: course.course_code,
+    startDate: course.start_date,
+    percent: course.completeness,
+  }));
 }
 
 export { ActivityInfo, getActivities };
