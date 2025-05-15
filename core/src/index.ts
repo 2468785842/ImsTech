@@ -11,7 +11,7 @@ import Config, { API_BASE_URL } from './config.js';
 import * as Processor from './course/processor.js';
 import * as Search from './course/search.js';
 import { filterCookies, login, storeCookies } from './login.js';
-import { waitForSPALoaded } from './utils.js';
+import { input, waitForSPALoaded } from './utils.js';
 
 async function init(page: Page) {
   // https://lms.ouchn.cn/user/index 返回会携带 WAF Cookie
@@ -28,14 +28,35 @@ async function init(page: Page) {
     })),
   );
 
-  await page.getByRole('link', { name: '我的课程' }).click();
-  await waitForSPALoaded(page);
+  //   await page.getByRole('link', { name: '我的课程' }).click();
+  //   await waitForSPALoaded(page);
 
   const listItems = await Activity.getActivities();
 
   console.log('课程组数量: ', listItems.length);
+  console.log(`0. 全部课程`);
 
-  for (let item of listItems) {
+  for (let i = 1; i <= listItems.length; i++) {
+    console.log(`${i}. ${listItems[i - 1].title}`);
+  }
+
+  let num: number = -1;
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(0);
+    }, 20000);
+  });
+  const userInputPromise = input(
+    '选择一项课程完成(输入序号),20秒后自动选择`0`:',
+  );
+  console.log();
+  num = Number(await Promise.race([userInputPromise, timeoutPromise]));
+  if (isNaN(num)) {
+    console.error('请输入数字');
+    exit();
+  }
+
+  for (let item of num == 0 ? listItems : [listItems[num - 1]]) {
     console.log('-'.repeat(60));
     console.log(item.title, item.percent);
 
@@ -127,6 +148,7 @@ async function init(page: Page) {
 }
 
 import { pathToFileURL } from 'url';
+import { exit } from 'process';
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   (async () => {
@@ -143,19 +165,18 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       args: headless ? ['--headless=new'] : [],
     });
 
-    const page = await login(browser);
-
     while (true) {
       try {
+        const page = await login(browser);
         await init(page);
+        // Teardown
+        await browser.close();
         break;
       } catch (e) {
         console.warn('Error:', e);
         console.warn('retry');
       }
     }
-    // Teardown
-    await browser.close();
   })();
 }
 

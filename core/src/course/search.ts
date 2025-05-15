@@ -81,7 +81,8 @@ async function getUncompletedCourses(
 ): Promise<CourseInfo[]> {
   console.log('正在获取未完成的课程...');
 
-  await page.getByText(activityInfo.title).click();
+  //   await page.getByText(activityInfo.title).click();
+  await page.goto(`${Config.urls.course()}/${activityInfo.id}/ng#/`);
   await page.waitForURL(RegExp(`^${Config.urls.course()}.*`));
 
   await waitForSPALoaded(page);
