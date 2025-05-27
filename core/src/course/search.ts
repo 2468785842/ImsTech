@@ -27,8 +27,9 @@ async function getModulesData(locs: Array<Locator>) {
         .textContent())!.trim();
 
       const syllabusesLoc = await module.locator('div.course-syllabus').all();
+      const activitiesLoc = await module.locator('div.module-activities').all();
 
-      return { moduleId, moduleName, module, syllabusesLoc };
+      return { moduleId, moduleName, module, syllabusesLoc: [...syllabusesLoc, ...activitiesLoc] };
     }),
   );
 }
@@ -50,7 +51,7 @@ async function getSyllabusesData(moduleData: {
       const syllabusId = (await syllabusLoc.getAttribute('id'))!;
       const syllabusName = (await syllabusLoc
         .locator('div.syllabus-title')
-        .textContent())!.trim();
+        .textContent({timeout: 100}).catch(() => ''))!.trim();
 
       return {
         moduleId,
@@ -86,7 +87,7 @@ async function getUncompletedCourses(
   await page.waitForURL(RegExp(`^${Config.urls.course()}.*`));
 
   await waitForSPALoaded(page);
-  await page.locator('input[type="checkbox"]').setChecked(false);
+  await page.locator('input[type="checkbox"]').setChecked(true);
 
   await waitForSPALoaded(page);
   const expandBtn = page.getByText(/全部(?:收起|展开)/);
@@ -100,13 +101,9 @@ async function getUncompletedCourses(
   const modules = await page.locator('div.module').all();
   const modulesData = await getModulesData(modules);
 
-  console.log('get ModulesData count:', modulesData.length);
-
   const syllabusesData = (
     await Promise.all(modulesData.map(getSyllabusesData))
   ).flat();
-
-  console.log('get SyllabusesData count:', syllabusesData.length);
 
   // some stuff is finished, so is empty, we need skip
   const hasContentActivity = async (activity: Locator) => {
@@ -142,8 +139,6 @@ async function getUncompletedCourses(
   );
 
   const activities = (await Promise.all(activitiesAsync)).flat();
-
-  console.log('get activities count:', activities.length);
 
   // 最后填充进度和活动名
   const coursesData = activities.map(async (activity) => {

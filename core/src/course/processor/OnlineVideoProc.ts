@@ -99,20 +99,23 @@ export default class OnlineVideoProc implements Processor {
     }
 
     const prcsBar = this.createProgress(
-      this.timeToMinutes(start) * 60,
-      this.timeToMinutes(end) * 60,
+      this.timeStringToNumber(start),
+      this.timeStringToNumber(end),
     );
 
     let preCur = (await getMeidaTime())[0];
-    const timer = setInterval(async () => {
+
+    const updatePrcsBar = async () => {
       const cur = (await getMeidaTime())[0];
       if (preCur != cur) {
         prcsBar.tick(
-          (this.timeToMinutes(cur) - this.timeToMinutes(preCur)) * 60,
+          this.timeStringToNumber(cur) - this.timeStringToNumber(preCur),
         );
         preCur = cur;
       }
-    }, 1000);
+    };
+
+    const timer = setInterval(updatePrcsBar, 1000);
 
     //一直等待直到视频播放完毕
     await page.waitForFunction(
@@ -144,6 +147,7 @@ export default class OnlineVideoProc implements Processor {
     );
 
     clearInterval(timer);
+    updatePrcsBar();
   }
 
   private createProgress(cur: number, end: number) {
@@ -153,14 +157,13 @@ export default class OnlineVideoProc implements Processor {
       total: end,
       width: 30,
       clear: true,
-      callback: () => console.log('play finished'),
     });
     bar.tick(cur);
     return bar;
   }
 
-  private timeToMinutes(timeString: string) {
-    const [hours, minutes] = timeString.split(':').map(Number);
-    return hours * 60 + minutes;
+  private timeStringToNumber(timeString: string) {
+    const [hours, minutes, seconds] = timeString.split(':').map(Number);
+    return hours * 60 * 60 + minutes * 60 + seconds;
   }
 }
