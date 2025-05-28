@@ -161,9 +161,33 @@ export default class OnlineVideoProc implements Processor {
     bar.tick(cur);
     return bar;
   }
+  private timeStringToNumber(timeString: string): number {
+    const parts = timeString.split(':').map(Number);
 
-  private timeStringToNumber(timeString: string) {
-    const [hours, minutes, seconds] = timeString.split(':').map(Number);
-    return hours * 60 * 60 + minutes * 60 + seconds;
+    if (parts.some((part) => isNaN(part) || part < 0)) {
+      throw new Error(
+        'Invalid time values. Each part must be a non-negative number.',
+      );
+    }
+
+    let hours = 0,
+      minutes = 0,
+      seconds = 0;
+
+    if (parts.length === 3) {
+      [hours, minutes, seconds] = parts;
+    } else if (parts.length === 2) {
+      [minutes, seconds] = parts;
+    } else if (parts.length === 1) {
+      [seconds] = parts;
+    } else {
+      throw new Error('Invalid time format. Use HH:MM:SS, MM:SS, or SS.');
+    }
+
+    if (minutes >= 60 || seconds >= 60) {
+      throw new Error('Minutes and seconds should be less than 60.');
+    }
+
+    return hours * 3600 + minutes * 60 + seconds;
   }
 }

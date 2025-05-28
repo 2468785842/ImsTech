@@ -29,7 +29,12 @@ async function getModulesData(locs: Array<Locator>) {
       const syllabusesLoc = await module.locator('div.course-syllabus').all();
       const activitiesLoc = await module.locator('div.module-activities').all();
 
-      return { moduleId, moduleName, module, syllabusesLoc: [...syllabusesLoc, ...activitiesLoc] };
+      return {
+        moduleId,
+        moduleName,
+        module,
+        syllabusesLoc: [...syllabusesLoc, ...activitiesLoc],
+      };
     }),
   );
 }
@@ -51,7 +56,8 @@ async function getSyllabusesData(moduleData: {
       const syllabusId = (await syllabusLoc.getAttribute('id'))!;
       const syllabusName = (await syllabusLoc
         .locator('div.syllabus-title')
-        .textContent({timeout: 100}).catch(() => ''))!.trim();
+        .textContent({ timeout: 100 })
+        .catch(() => ''))!.trim();
 
       return {
         moduleId,
