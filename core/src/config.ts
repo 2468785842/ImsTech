@@ -11,6 +11,13 @@ const qps = Number(_Qps) || 1;
 
 const { _ACCOUNT: account, _PASSWORD: password } = process.env;
 
+// 获取随机延迟时间
+function getRandomDelay() {
+  const min = Number(process.env._SLOW_MO_MIN ?? process.env._SLOW_MO ?? 1000);
+  const max = Number(process.env._SLOW_MO_MAX ?? process.env._SLOW_MO ?? 1000);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 const Config = {
   user: {
     account,
@@ -28,7 +35,7 @@ const Config = {
 
   browser: {
     headless: !!process.env._HEAD_LESS,
-    slowMo: Number(process.env._SLOW_MO ?? 1000),
+    slowMo: getRandomDelay,
   },
   playRate: Number(process.env._PLAY_RATE ?? 8),
   totalPoints: Number(process.env._TOTAL_POINTS ?? 100),
