@@ -12,6 +12,7 @@ import * as Processor from './course/processor.js';
 import * as Search from './course/search.js';
 import { filterCookies, login, storeCookies } from './login.js';
 import { input, waitForSPALoaded } from './utils.js';
+import { CourseInfo } from './course/search.js';
 
 // 创建一个包装函数，在每次操作前添加随机延迟
 async function withRandomDelay<T>(page: Page, operation: () => Promise<T>): Promise<T> {
@@ -62,7 +63,6 @@ async function init(page: Page) {
     const userInputPromise = input(
       '选择一项课程完成(输入序号),20秒后自动选择`0`:',
     );
-    console.log();
     num = Number(await Promise.race([userInputPromise, timeoutPromise]));
     if (isNaN(num)) {
       console.error('请输入数字');
@@ -72,13 +72,31 @@ async function init(page: Page) {
     for (let item of num == 0 ? listItems : [listItems[num - 1]]) {
       console.log('-'.repeat(60));
       console.log(item.title, item.percent);
-
-      // 考试需要特殊处理
-      const courses = (await Search.getUncompletedCourses(page, item)).filter(
-        (course) => course.progress != 'full' || course.type == 'exam',
-      );
-
+	  
+      let courses: Search.CourseInfo[] = [];
+        // 考试需要特殊处理
+      try{
+        courses = (await Search.getUncompletedCourses(page, item)).filter(
+          (course) => course.progress != 'full' || course.type == 'exam',
+        );
+      }catch(e){
+        console.log(`[${item.title}]课程异常，跳过`);
+        if(num==0){
+          continue;
+        }
+        //console.log("单独课程重载菜单。");
+        //非全部课程停止执行并重新发送课程菜单
+        await page.goBack({
+          timeout: 0,
+          waitUntil: 'domcontentloaded',
+        })
+        return init(page)
+      }
+      
+      console.log("courses", courses);
       for (const [i, course] of courses.entries()) {
+		//console.log(course);
+		
         console.log(
           chalk.bgBlueBright(
             format(
@@ -111,7 +129,8 @@ async function init(page: Page) {
         const t = tLoc
           .locator(`#learning-activity-${course.activityId}`)
           .getByText(course.activityName, { exact: true });
-
+		
+		console.log(t);
         if ((await t.getAttribute('class'))!.lastIndexOf('locked') != -1) {
           console.log('课程锁定', '跳过');
           continue;
