@@ -35,8 +35,8 @@ _MODEL="lite" # 模型名
 _Qps=2 # 可选，每秒查询次数，默认为 1。
 
 # 可选，设置代理（仅用于 AI 和 axios，浏览器不受影响）
-_PROXY_HOST=127.0.0.1
-_PROXY_PORT=8080
+#_PROXY_HOST=127.0.0.1
+#_PROXY_PORT=8080
 ```
 
 #### 运行程序
