@@ -17,9 +17,11 @@ _ACCOUNT="xxx" # 你的账号
 _PASSWORD="xxx" # 你的密码
 
 _CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # Chrome Dev 安装路径，或使用你自己的 Chrome 安装路径
+_SLOW_MO=6000 # 可选，执行间隔，默认为1000ms。调整此值可以避免被检测为异常行为。
+_SLOW_MO_MIN=6000 # 可选，最小执行间隔（毫秒）
+_SLOW_MO_MAX=10000 # 可选，最大执行间隔（毫秒）
 
-_SLOW_MO=1000 # 可选，执行间隔，默认为1000ms。调整此值可以避免被检测为异常行为。
-_HEAD_LESS=1 # 可选，是否启用无头模式，默认不启用。
+_HEAD_LESS=1 # 可选，是否启用无头模式，默认不启用,参数为空则显示浏览器窗口。
 _PLAY_RATE=16 # 可选，视频播放倍速，默认倍速为 8。
 _TOTAL_POINTS=100 # 可选，考试及格分数，AI 答题分数超过此值时会自动结束当前考试。
 
@@ -33,8 +35,8 @@ _MODEL="lite" # 模型名
 _Qps=2 # 可选，每秒查询次数，默认为 1。
 
 # 可选，设置代理（仅用于 AI 和 axios，浏览器不受影响）
-_PROXY_HOST=127.0.0.1
-_PROXY_PORT=8080
+#_PROXY_HOST=127.0.0.1
+#_PROXY_PORT=8080
 ```
 
 #### 运行程序
