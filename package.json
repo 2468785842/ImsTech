@@ -7,39 +7,47 @@
   "author": "lidong",
   "license": "MIT",
   "private": true,
+  "build": {
+    "appId": "org.github.imstech",
+    "productName": "ImsTechAuto",
+    "icon": "assets/icon.ico",
+    "files": [
+      "dist/src/**/*.js",
+      "node_modules/**/*",
+      "package.json",
+      "!**/.cookies.txt",
+      "!**/test-results",
+      "!**/tests"
+    ],
+    "win": {
+      "target": "portable",
+      "artifactName": "${productName}.${ext}"
+    }
+  },
   "scripts": {
     "build": "tsc -b core && tsc",
     "start": "yarn workspace @ims-tech-auto/core start",
-    "start:electron": "yarn build && electron-forge start",
-    "package:electron": "yarn build && electron-forge package",
-    "make:electron": "yarn build && electron-forge make"
+    "start:electron": "yarn build && electron ./dist/src",
+    "build:electron": "yarn build && electron-builder"
   },
   "workspaces": [
     "core"
   ],
   "devDependencies": {
-    "@electron-forge/cli": "^7.5.0",
-    "@electron-forge/maker-deb": "^7.5.0",
-    "@electron-forge/maker-rpm": "^7.5.0",
-    "@electron-forge/maker-squirrel": "^7.5.0",
-    "@electron-forge/maker-wix": "^7.5.0",
-    "@electron-forge/maker-zip": "^7.5.0",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.5.0",
-    "@electron-forge/plugin-fuses": "^7.5.0",
     "@electron/fuses": "^1.8.0",
     "@playwright/test": "^1.48.1",
     "@types/node": "^22.9.0",
     "electron": "^33.2.0",
+    "electron-builder": "^26.0.12",
     "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "source-map-support": "^0.5.21",
-    "electron-squirrel-startup": "^1.0.1",
+    "@ims-tech-auto/core": "^1.0.0",
     "playwright": "^1.44.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "@ims-tech-auto/core": "^1.0.0"
+    "source-map-support": "^0.5.21"
   }
 }

@@ -2,7 +2,7 @@
 
 ### 可直接下载并使用 Electron 打包版
 点击以下链接下载可执行安装程序：
-[ImsTechAuto](https://github.com/2468785842/ImsTech/releases/latest/download/ims-tech-auto-1.0.0.Setup.exe)
+[ImsTechAuto](https://github.com/2468785842/ImsTech/releases/latest/download/ImsTechAuto.exe)
 
 ### 或者从源码运行
 
@@ -103,7 +103,7 @@ $ELECTRON_CUSTOM_DIR="v{{ version }}"
 
 - 打包应用：
   ```bash
-  yarn make:electron
+  yarn build:electron
   ```
 
 #### 下载和打包 Electron 时需要使用镜像或科学上网工具。

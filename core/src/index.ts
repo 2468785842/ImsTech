@@ -202,7 +202,9 @@ async function init(page: Page) {
 import { pathToFileURL } from 'url';
 import { exit } from 'process';
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+const arg = process.argv[1];
+
+if (arg && import.meta.url === pathToFileURL(arg).href) {
   (async () => {
     let browser;
     try {
