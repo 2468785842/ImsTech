@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron';
-import { Config, init, Login } from '@ims-tech-auto/core';
+import { Config, init, login } from '@ims-tech-auto/core';
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
@@ -20,7 +20,7 @@ async function createWindow() {
   });
 
   // 加载应用的本地文件
-  await mainWindow.loadURL(Config.default.urls.login());
+  await mainWindow.loadURL(Config.urls.login());
 
   mainWindow.webContents.on('did-finish-load', async () => {
     console.log('Main window finished loading');
@@ -48,7 +48,7 @@ async function connectToElectron() {
   // 获取浏览器页面
 
   // 在页面中执行操作
-  const page = await Login.login(browser);
+  const page = await login(browser);
   await init(page);
 }
 

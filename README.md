@@ -90,6 +90,12 @@ $ELECTRON_CUSTOM_DIR="v{{ version }}"
 ```
 
 #### 打包成可执行文件
+- 在根目录执行命令
+- 安装依赖:
+  ```bash
+  yarn install
+  ```
+
 - 启动 Electron：
   ```bash
   yarn start:electron
