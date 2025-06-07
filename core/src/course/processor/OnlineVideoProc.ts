@@ -14,8 +14,8 @@ import Config from '../../config.js';
 
 export default class OnlineVideoProc implements Processor {
   name: CourseType = 'online_video';
-
   async exec(page: Page) {
+    let checkVideoStatusTimer:any=null;
     const tryToShowControls = async () => {
       const playControls = page.locator('div.mvp-replay-player-all-controls');
       await playControls.evaluate(
@@ -103,10 +103,99 @@ export default class OnlineVideoProc implements Processor {
       this.timeStringToNumber(end),
     );
 
+    let onCur:any=0;
+    //检测视频是否卡住
+    const checkVideoPlayStatusFunc=()=>{
+      let saveCur=onCur;
+      try{
+        clearTimeout(checkVideoStatusTimer);
+        checkVideoStatusTimer = setTimeout(async function(){
+          if(saveCur==onCur)
+          {
+            //console.warn('Video playback may be stuck at:', saveCur);
+            let p = page.locator('.mvp-toggle-play.mvp-first-btn-margin');
+            //查找播放按钮元素，如果存在则目前为暂停状态，设置playStatus为false
+            let playStatus:any = false;
+            try {
+              playStatus = await page.evaluate(() => 
+                document.querySelector('.mvp-toggle-play.mvp-first-btn-margin i.mvp-fonts.mvp-fonts-play')
+              );
+            } catch (e) {
+              playStatus = true;
+            }
+            playStatus = !playStatus || playStatus == null ? true : false;
+            try{
+              if(playStatus==true)
+                {
+                  //console.log("目前为视频播放状态，执行暂停视频并重新开始播放");
+                  p = page.locator('.mvp-toggle-play.mvp-first-btn-margin');
+                  console.log(p);
+                  try {
+                    await page.evaluate(()=>{
+                      let btnC = document.querySelector('.mvp-toggle-play.mvp-first-btn-margin') as HTMLElement;
+                      if(btnC){
+                        btnC.click();
+                      }
+                    })
+                    await page.waitForTimeout(500);
+                    await page.evaluate(()=>{
+                      let btnC = document.querySelector('.mvp-toggle-play.mvp-first-btn-margin') as HTMLElement;
+                      if(btnC){
+                        btnC.click();
+                      }
+                    })
+                  } catch (clickError) {
+                    //console.log("点击操作超时，尝试重新定位元素");
+                    p = page.locator('.mvp-toggle-play.mvp-first-btn-margin');
+                    await p.click().catch(async () => {
+                      //console.log("重试点击也失败了，尝试刷新页面");
+                      if (page) {
+                        try {
+                          await page.reload({ timeout: 10000 });
+                          await page.waitForLoadState('domcontentloaded');
+                          //console.log("页面刷新完成");
+                        } catch (reloadError) {
+                          //console.log("页面刷新失败:", reloadError);
+                        }
+                      }
+                    });
+                  }
+                }else{
+                  p = page.locator('.mvp-toggle-play.mvp-first-btn-margin');
+                  //console.log("目前为视频暂停状态，点击开始播放");
+                  try {
+                    await page.evaluate(()=>{
+                      let btnC = document.querySelector('.mvp-toggle-play.mvp-first-btn-margin') as HTMLElement;
+                      if(btnC){
+                        btnC.click();
+                      }
+                    })
+                  } catch (clickError) {
+                    //console.log("点击操作超时");
+                  }
+                }
+            }catch(e){
+              //console.log("操作视频播放暂停失败:", e);
+            }
+          }else{
+            //继续检测
+            //console.log("视频正在播放无需操作，继续检测");
+            checkVideoPlayStatusFunc();
+          }
+        },10000)
+      }catch(e){
+        checkVideoPlayStatusFunc();
+      }
+      
+    }
+    //执行视频播放状态检测
+    checkVideoPlayStatusFunc();
+
     let preCur = (await getMeidaTime())[0];
 
     const updatePrcsBar = async () => {
       const cur = (await getMeidaTime())[0];
+      onCur=cur;
       if (preCur != cur) {
         prcsBar.tick(
           this.timeStringToNumber(cur) - this.timeStringToNumber(preCur),
@@ -147,6 +236,7 @@ export default class OnlineVideoProc implements Processor {
     );
 
     clearInterval(timer);
+    clearTimeout(checkVideoStatusTimer); //删除视频播放状态检测计时器
     updatePrcsBar();
   }
 
