@@ -22,7 +22,7 @@ jobs:
 
       - name: Build and package Electron app
         run: |
-          yarn make:electron
+          yarn build:electron
 
       - name: Upload Artifacts
         if: success()
