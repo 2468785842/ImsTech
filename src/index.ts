@@ -55,5 +55,5 @@ async function connectToElectron() {
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
-    app.quit();
+  app.quit();
 });

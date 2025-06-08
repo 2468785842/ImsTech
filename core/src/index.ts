@@ -147,9 +147,9 @@ async function init(page: Page) {
         }
 
         // 从这里开始添加随机延迟
-        try{
+        try {
           await withRandomDelay(page, () => t.click());
-        }catch(e){
+        } catch (e) {
           /**
            * 这里必须跳过
            * 因为第二次打开脚本后
@@ -166,12 +166,7 @@ async function init(page: Page) {
             waitUntil: 'domcontentloaded',
           }),
         );
-        
-          
-        
-        
-        
-        
+
         for (let count = 5; count > -1; count--) {
           await withRandomDelay(page, () => waitForSPALoaded(page));
           try {
@@ -185,8 +180,6 @@ async function init(page: Page) {
             );
           }
         }
-          
-        
 
         // 回到课程选择页
         await withRandomDelay(page, () =>

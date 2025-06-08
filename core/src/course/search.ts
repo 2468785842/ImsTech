@@ -126,18 +126,19 @@ async function getUncompletedCourses(
       return (
         await Promise.all(
           activityLocList.map(async (activityLoc) =>
-            
             (await hasContentActivity(activityLoc))
-              ? (await getActivityName(activityLoc)=='' ? [] : {
-                moduleId: syllabus.moduleId,
-                moduleName: syllabus.moduleName,
-                syllabusId: syllabus.syllabusId,
-                syllabusName: syllabus.syllabusName,
-                type: await getActivityType(activityLoc),
-                activityId: await getActivityId(activityLoc),
-                activityName: await getActivityName(activityLoc),
-                activityLoc,
-              })
+              ? (await getActivityName(activityLoc)) == ''
+                ? []
+                : {
+                    moduleId: syllabus.moduleId,
+                    moduleName: syllabus.moduleName,
+                    syllabusId: syllabus.syllabusId,
+                    syllabusName: syllabus.syllabusName,
+                    type: await getActivityType(activityLoc),
+                    activityId: await getActivityId(activityLoc),
+                    activityName: await getActivityName(activityLoc),
+                    activityLoc,
+                  }
               : [],
           ),
         )
@@ -176,7 +177,7 @@ async function getUncompletedCourses(
 }
 
 async function getActivityName(activity: Locator) {
-  try{
+  try {
     const titleElt = activity.locator('div.activity-title a.title');
     const title = await titleElt.evaluate((e) => {
       return e.textContent;
@@ -186,7 +187,7 @@ async function getActivityName(activity: Locator) {
       return '';
     }
     return title;
-  }catch(e){
+  } catch (e) {
     return '';
   }
 }
