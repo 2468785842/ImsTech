@@ -154,8 +154,10 @@ export default class OnlineVideoProc implements Processor {
                           await page.reload({ timeout: 10000 });
                           await page.waitForLoadState('domcontentloaded');
                           //console.log("页面刷新完成");
+                          return checkVideoPlayStatusFunc();
                         } catch (reloadError) {
                           //console.log("页面刷新失败:", reloadError);
+                          return checkVideoPlayStatusFunc();
                         }
                       }
                     });
@@ -172,16 +174,19 @@ export default class OnlineVideoProc implements Processor {
                     })
                   } catch (clickError) {
                     //console.log("点击操作超时");
+                    return checkVideoPlayStatusFunc();
                   }
                 }
             }catch(e){
               //console.log("操作视频播放暂停失败:", e);
+              return checkVideoPlayStatusFunc();
             }
           }else{
             //继续检测
             //console.log("视频正在播放无需操作，继续检测");
-            checkVideoPlayStatusFunc();
+            return checkVideoPlayStatusFunc();
           }
+          checkVideoPlayStatusFunc();
         },10000)
       }catch(e){
         checkVideoPlayStatusFunc();
