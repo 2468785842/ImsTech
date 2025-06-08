@@ -2,7 +2,7 @@ name: Build Electron App for Windows
 
 on:
   workflow_dispatch:
-
+R
 jobs:
   build:
     runs-on: windows-latest
@@ -26,7 +26,7 @@ jobs:
 
       - name: Upload Artifacts
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: imstechauto
           path: |
