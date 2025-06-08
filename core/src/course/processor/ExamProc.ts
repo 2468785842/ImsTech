@@ -298,7 +298,7 @@ export default class ExamProc implements Processor {
 
     if (
       examScore &&
-      (examScore == this.#totalPoints || examScore > this.gtScorePass)
+      (examScore == this.#totalPoints || examScore > this.#totalPoints)
     )
       return null;
 

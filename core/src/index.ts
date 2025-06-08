@@ -130,7 +130,6 @@ async function init(page: Page) {
         if (course.syllabusId) {
           tLoc = tLoc.locator(`#${course.syllabusId}`);
         }
-
         const t = tLoc
           .locator(`#learning-activity-${course.activityId}`)
           .getByText(course.activityName, { exact: true });
@@ -148,8 +147,19 @@ async function init(page: Page) {
         }
 
         // 从这里开始添加随机延迟
-        await withRandomDelay(page, () => t.click());
-
+        try {
+          await withRandomDelay(page, () => t.click());
+        } catch (e) {
+          /**
+           * 这里必须跳过
+           * 因为第二次打开脚本后
+           * 学习网会默认勾选只显示未学内容
+           * 但已经完成的自测考试依然会来到这里执行点击操作
+           * 此时网页内自测考试已经被隐藏，导致寻找不到元素后整个脚本崩溃
+           */
+          //console.log("无法进入该课程，该课程可能已经完成学习。跳过");
+          continue;
+        }
         await withRandomDelay(page, () =>
           page.waitForURL(RegExp(`^${Config.urls.course()}.*`), {
             timeout: 30000,

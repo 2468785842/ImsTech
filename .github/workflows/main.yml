@@ -14,7 +14,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '21'
+          node-version: '20'
 
       - name: Install dependencies
         run: |
@@ -22,11 +22,11 @@ jobs:
 
       - name: Build and package Electron app
         run: |
-          yarn make:electron
+          yarn build:electron
 
       - name: Upload Artifacts
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: imstechauto
           path: |
