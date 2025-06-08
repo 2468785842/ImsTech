@@ -2,7 +2,7 @@ name: Build Electron App for Windows
 
 on:
   workflow_dispatch:
-R
+
 jobs:
   build:
     runs-on: windows-latest
