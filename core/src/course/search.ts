@@ -127,16 +127,18 @@ async function getUncompletedCourses(
         await Promise.all(
           activityLocList.map(async (activityLoc) =>
             (await hasContentActivity(activityLoc))
-              ? {
-                  moduleId: syllabus.moduleId,
-                  moduleName: syllabus.moduleName,
-                  syllabusId: syllabus.syllabusId,
-                  syllabusName: syllabus.syllabusName,
-                  type: await getActivityType(activityLoc),
-                  activityId: await getActivityId(activityLoc),
-                  activityName: await getActivityName(activityLoc),
-                  activityLoc,
-                }
+              ? (await getActivityName(activityLoc)) == ''
+                ? []
+                : {
+                    moduleId: syllabus.moduleId,
+                    moduleName: syllabus.moduleName,
+                    syllabusId: syllabus.syllabusId,
+                    syllabusName: syllabus.syllabusName,
+                    type: await getActivityType(activityLoc),
+                    activityId: await getActivityId(activityLoc),
+                    activityName: await getActivityName(activityLoc),
+                    activityLoc,
+                  }
               : [],
           ),
         )
@@ -175,13 +177,19 @@ async function getUncompletedCourses(
 }
 
 async function getActivityName(activity: Locator) {
-  const titleElt = activity.locator('div.activity-title a.title');
-  const title = await titleElt.textContent();
-  if (!title) {
-    console.log(activity);
-    throw 'course title is undefined';
+  try {
+    const titleElt = activity.locator('div.activity-title a.title');
+    const title = await titleElt.evaluate((e) => {
+      return e.textContent;
+    });
+    if (!title) {
+      console.log(activity);
+      return '';
+    }
+    return title;
+  } catch (e) {
+    return '';
   }
-  return title;
 }
 
 async function getActivityType(activity: Locator): Promise<CourseType> {
