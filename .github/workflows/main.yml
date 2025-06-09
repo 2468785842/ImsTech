@@ -30,4 +30,4 @@ jobs:
         with:
           name: imstechauto
           path: |
-            ImsTechAutoElectron/out/make/**/*.exe
+            dist/ImsTechAuto.exe
