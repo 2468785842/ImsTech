@@ -84,6 +84,8 @@ async function init(page: Page) {
         courses = (await Search.getUncompletedCourses(page, item)).filter(
           (course) => course.progress != 'full' || course.type == 'exam',
         );
+        // 使“未完成”取消勾选，防止已完成测试阻塞执行
+        await page.locator('input[type="checkbox"]').setChecked(false);
       } catch (e) {
         console.log(`[${item.title}]课程异常，跳过`);
         if (num == 0) {
