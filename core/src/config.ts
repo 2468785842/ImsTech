@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import 'dotenv/config';
 
-const BASE_SSO_URL = 'https://iam.pt.ouchn.cn/am/UI/Login';
+const BASE_SSO_URL = 'https://iam.pt.ouchn.cn/am';
 
 const API_BASE_URL = 'https://lms.ouchn.cn';
 

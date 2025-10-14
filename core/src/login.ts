@@ -29,7 +29,7 @@ async function login(browser: Browser) {
 
   await page.goto(Config.urls.home(), { timeout: 1000 * 60 * 10 });
 
-  if (!RegExp(`^${Config.urls.login()}.*`).test(page.url())) {
+  if (!RegExp(`^${Config.urls.login()}`).test(page.url())) {
     console.log('已经登陆');
     return page;
   }
@@ -53,7 +53,7 @@ async function login(browser: Browser) {
   await agree.setChecked(true);
 
   if (account && password) {
-    await page.getByRole('button', { name: '登录' }).click();
+    await page.getByRole('button', { name: /\s*登\s*录\s*/ }).click();
   }
 
   // 等待跳转, timeout 可能被父级 page option覆盖呢..., 在这里显式声明好了
