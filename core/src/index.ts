@@ -261,7 +261,7 @@ if (arg && import.meta.url === pathToFileURL(arg).href) {
       if (browser) {
         await browser.close();
       }
-      exit(1);
+      exit();
     }
   })();
 }
