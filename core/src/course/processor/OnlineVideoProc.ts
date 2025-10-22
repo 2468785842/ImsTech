@@ -14,6 +14,7 @@ import Config from '../../config.js';
 
 export default class OnlineVideoProc implements Processor {
   name: CourseType = 'online_video';
+
   async exec(page: Page) {
     let checkVideoStatusTimer: any = null;
     const tryToShowControls = async () => {
@@ -238,7 +239,6 @@ export default class OnlineVideoProc implements Processor {
         end = end.trim();
         if (Date.now() - date > 15000 && (cur == '00:00' || cur == ''))
           throw 'play meida error';
-        // console.log("waiting for video play over:", cur, end);
         return cur === end;
       },
       { date: Date.now(), mediaType },
@@ -251,7 +251,7 @@ export default class OnlineVideoProc implements Processor {
   }
 
   private createProgress(cur: number, end: number) {
-    const bar = new ProgressBar('playing [:bar] :percent :current/:total(s)', {
+    const bar = new ProgressBar('正在播放 [:bar] :percent :current/:total(s)', {
       head: '>',
       incomplete: ' ',
       total: end,
@@ -261,6 +261,7 @@ export default class OnlineVideoProc implements Processor {
     bar.tick(cur);
     return bar;
   }
+
   private timeStringToNumber(timeString: string): number {
     const parts = timeString.split(':').map(Number);
 

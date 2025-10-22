@@ -41,25 +41,29 @@ const Config = {
   totalPoints: Number(process.env._TOTAL_POINTS ?? 100),
 };
 
-const checkUnicode = (v: any) => (v ? chalk.green('✓') : chalk.red('✘'));
+function printConfigStatus() {
+  console.log('视频倍速:', Config.playRate);
+  console.log('考试分数及格线(百分比):', Config.totalPoints);
 
-console.log('无头模式:', checkUnicode(Config.browser.headless));
+  if (Config.browser.headless) {
+    console.log('无头模式已启用');
+  }
 
-console.log('视频倍速:', Config.playRate);
-console.log('考试分数及格线(百分比):', Config.totalPoints);
+  if (Config.ai && Config.ai.api && Config.ai.key && Config.ai.model) {
+    console.log('AI已启用:');
+    console.log('API', Config.ai.api);
+    console.log('Key', '*'.repeat(Config.ai.key.length));
+    console.log('Model', Config.ai.model);
+  }
 
-console.log('检查AI设置:');
-console.log('API', checkUnicode(Config.ai.api));
-console.log('Key', checkUnicode(Config.ai.key));
-console.log('Model', checkUnicode(Config.ai.model));
-
-if (Config.proxy) {
-  console.log(
-    '代理:',
-    chalk.green(`http://${Config.proxy.host}:${Config.proxy.port}`),
-  );
+  if (Config.proxy) {
+    console.log(
+      '代理:',
+      chalk.green(`http://${Config.proxy.host}:${Config.proxy.port}`),
+    );
+  }
 }
 
 export default Config;
 
-export { API_BASE_URL };
+export { API_BASE_URL, printConfigStatus };

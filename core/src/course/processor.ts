@@ -8,7 +8,6 @@ import { dirname } from 'path';
 
 import { CourseProgress, CourseInfo } from './search.js';
 
-// TODO: 重构
 const COURSE_TYPE = {
   web_link: '线上链接',
   material: '参考资料',
@@ -83,6 +82,17 @@ function getProcessor(name: CourseType) {
   return processorTable[name];
 }
 
+function isProcessor(obj: any): obj is Processor {
+  return (
+    typeof obj === 'object' &&
+    obj != null &&
+    typeof obj.name === 'string' &&
+    hasCourseType(obj.name) &&
+    (obj.condition === void 0 || typeof obj.condition === 'function') &&
+    typeof obj.exec == 'function'
+  );
+}
+
 // 获取当前模块的路径
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -102,10 +112,11 @@ fs.readdirSync(scriptsFolder)
     await import(fileUrl.href) // 使用合法的 file:// URL
       .then((m) => {
         const processor = new m.default();
-        // 考虑添加动态类型检查?
-        registerProcessor(processor);
-        // console.log(`${file} loaded successfully`);
-        // 可以根据需要使用加载的模块 'module'
+        if (isProcessor(processor)) {
+          registerProcessor(processor);
+        } else {
+          throw new Error(`文件: ${filePath} 不是一个 Processor`);
+        }
       })
       .catch((e) => {
         console.error(`Error loading ${file}`);

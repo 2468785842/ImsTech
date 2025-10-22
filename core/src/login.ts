@@ -38,7 +38,7 @@ async function login(browser: Browser) {
     throw '需要手动进行验证, 请关闭无头模式';
   }
 
-  console.log('需要登陆');
+  console.warn('需要登陆');
 
   const { account, password } = Config.user;
 
@@ -53,7 +53,7 @@ async function login(browser: Browser) {
   await agree.setChecked(true);
 
   if (account && password) {
-    await page.getByRole('button', { name: /\s*登\s*录\s*/ }).click();
+    await page.getByRole('button', { name: /^\s*登\s*录\s*$/ }).click();
   }
 
   // 等待跳转, timeout 可能被父级 page option覆盖呢..., 在这里显式声明好了
