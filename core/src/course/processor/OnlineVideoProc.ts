@@ -8,10 +8,6 @@ import { CourseType, Processor } from '../processor.js';
 import { waitForSPALoaded } from '../../utils.js';
 import Config from '../../config.js';
 
-// 以后考虑直接调用接口, 不播放视频
-// {start: 233, end: 286}
-// https://lms.ouchn.cn/api/course/activities-read/60005178469
-
 export default class OnlineVideoProc implements Processor {
   name: CourseType = 'online_video';
 
@@ -238,7 +234,7 @@ export default class OnlineVideoProc implements Processor {
         cur = cur.trim();
         end = end.trim();
         if (Date.now() - date > 15000 && (cur == '00:00' || cur == ''))
-          throw 'play meida error';
+          throw '播放媒体文件错误(等待超时)';
         return cur === end;
       },
       { date: Date.now(), mediaType },
@@ -258,8 +254,28 @@ export default class OnlineVideoProc implements Processor {
       width: 30,
       clear: true,
     });
+    bar.render((tokens: any) => {
+      const elapsed = this.timeNumberToString(tokens.current);
+      const total = this.timeNumberToString(tokens.total);
+      process.stdout.write(
+        `\r播放中 [${tokens.bar}] ${tokens.percent}% ${elapsed} / ${total}`,
+      );
+    });
     bar.tick(cur);
     return bar;
+  }
+
+  private timeNumberToString(sec: number) {
+    const h = Math.floor(sec / 3600)
+      .toString()
+      .padStart(2, '0');
+    const m = Math.floor((sec % 3600) / 60)
+      .toString()
+      .padStart(2, '0');
+    const s = Math.floor(sec % 60)
+      .toString()
+      .padStart(2, '0');
+    return `${h}:${m}:${s}`;
   }
 
   private timeStringToNumber(timeString: string): number {

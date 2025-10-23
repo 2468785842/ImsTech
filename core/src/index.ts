@@ -1,12 +1,9 @@
-import { chromium } from 'playwright-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import 'source-map-support/register.js';
 
 import chalk from 'chalk';
-import { Browser, Page } from 'playwright-core';
+import { Page } from 'playwright-core';
 import { format } from 'util';
 import * as Activity from './activity.js';
-import AIModel from './ai/AIModel.js';
 import Config, { API_BASE_URL, printConfigStatus } from './config.js';
 import * as Processor from './course/processor.js';
 import * as Search from './course/search.js';
@@ -18,7 +15,6 @@ import {
   withRandomDelay,
 } from './utils.js';
 
-import { pathToFileURL } from 'url';
 import { exit } from 'process';
 
 async function init(page: Page) {

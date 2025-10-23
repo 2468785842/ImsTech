@@ -48,7 +48,9 @@ function parseDOMText(page: Page, str: string) {
 }
 
 class ErrorWithRetry {
-  private failedTask: (e: any) => void = (e) => { throw e; };
+  private failedTask: (e: any) => void = (e) => {
+    throw e;
+  };
   private retryTask: () => Promise<void> | void = async () => {};
 
   constructor(
@@ -58,7 +60,7 @@ class ErrorWithRetry {
 
   async run(task: () => Promise<void> | void) {
     let lastError: any;
-    
+
     for (let i = 0; i < this.maxCnt; i++) {
       try {
         await task();
@@ -66,7 +68,7 @@ class ErrorWithRetry {
       } catch (e) {
         lastError = e;
         console.warn(
-          `任务: ${this.taskName} 执行失败, 重试: ${i + 1}/${this.maxCnt}, 错误: ${e}`
+          `任务: ${this.taskName} 执行失败, 重试: ${i + 1}/${this.maxCnt}, 错误: ${e}`,
         );
 
         // 如果不是最后一次重试，执行重试任务
@@ -79,7 +81,7 @@ class ErrorWithRetry {
         }
       }
     }
-    
+
     // 所有重试都失败
     console.error(`任务: ${this.taskName} 执行失败, 并且达到最大重试次数.`);
     this.failedTask(lastError);

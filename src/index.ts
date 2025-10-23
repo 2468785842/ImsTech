@@ -4,14 +4,29 @@ import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AIModel from '@ims-tech-auto/core/ai/AIModel.js';
 
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  // 如果无法获得锁，说明已有实例在运行
+  app.quit();
+}
+
+let mainWindow: BrowserWindow | null = null;
+
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
 {
   const { appendSwitch } = app.commandLine;
   appendSwitch('remote-debugging-port', '9222');
-  appendSwitch('--no-sandbox');
+  appendSwitch('no-sandbox');
 }
 
 async function createWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 900,
     show: !Config.browser.headless,
@@ -27,15 +42,14 @@ async function createWindow() {
   mainWindow.webContents.on(
     'did-fail-load',
     (event, errorCode, errorDescription) => {
-      console.error(
-        `网页加载失败: ${errorDescription} (错误码: ${errorCode})`,
-      );
+      console.error(`网页加载失败: ${errorDescription} (错误码: ${errorCode})`);
     },
   );
 
-  await connectToElectron();
   // 使用 Playwright 连接窗口，示例连接到CDP端口（确保 Electron 打开时调试端口暴露）
-  // await AIModel.init(true);
+  await connectToElectron().catch((err) => {
+    console.error('Electron连接Playwright失败:', err);
+  });
 }
 
 async function connectToElectron() {
@@ -43,8 +57,8 @@ async function connectToElectron() {
   const browser = await chromium
     .use(StealthPlugin())
     .connectOverCDP('http://localhost:9222', {
-        slowMo: 0, // 不使用 Playwright 的 slowMo，我们使用自己的延迟机制
-        timeout: 1000 * 60 * 2,
+      slowMo: 0, // 不使用 Playwright 的 slowMo，我们使用自己的延迟机制
+      timeout: 1000 * 60 * 2,
     });
   // 获取浏览器页面
 
@@ -53,6 +67,7 @@ async function connectToElectron() {
 
   const page = await login(browser);
   await init(page);
+  app.exit();
 }
 
 app.whenReady().then(createWindow);
