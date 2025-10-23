@@ -62,7 +62,6 @@ class ErrorWithRetry {
     for (let i = 0; i < this.maxCnt; i++) {
       try {
         await task();
-        console.log(`任务: ${this.taskName} 执行成功`);
         return; // 成功则退出
       } catch (e) {
         lastError = e;

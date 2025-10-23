@@ -15,26 +15,26 @@
 _ACCOUNT="xxx" # 你的账号
 _PASSWORD="xxx" # 你的密码
 
-_SLOW_MO=6000 # 可选，执行间隔，默认为1000ms。调整此值可以避免被检测为异常行为。
-_SLOW_MO_MIN=6000 # 可选，最小执行间隔（毫秒）
-_SLOW_MO_MAX=10000 # 可选，最大执行间隔（毫秒）
+# _SLOW_MO=6000 # 可选，执行间隔，默认为1000ms。调整此值可以避免被检测为异常行为。
+# _SLOW_MO_MIN=6000 # 可选，最小执行间隔（毫秒）
+# _SLOW_MO_MAX=10000 # 可选，最大执行间隔（毫秒）
 
-_HEAD_LESS=1 # 可选，是否启用无头模式，默认不启用,参数为空则显示浏览器窗口。
-_PLAY_RATE=16 # 可选，视频播放倍速，默认倍速为 8。
-_TOTAL_POINTS=100 # 可选，考试及格分数，AI 答题分数超过此值时会自动结束当前考试。
+# _HEAD_LESS=1 # 可选，是否启用无头模式，默认不启用,参数为空则显示浏览器窗口。
+# _PLAY_RATE=16 # 可选，视频播放倍速，默认倍速为 8。
+# _TOTAL_POINTS=100 # 可选，考试及格分数，AI 答题分数超过此值时会自动结束当前考试。
 
 ########## 以下功能不稳定，如有问题请提交 issue ##########
 
 # 可选，开启自动答题功能
-# 目前仅支持单选题、判断题和随机题目，暂不支持多选和简答题。
-_API="https://spark-api-open.xf-yun.com/v1" # AI 答题 API 接口
-_KEY="nxetovst4bY1v0hUIk8L:NxYXC44THZHkVUmWLLGb" # API 密钥（此为示例，无法使用）
-_MODEL="lite" # 模型名
-_Qps=2 # 可选，每秒查询次数，默认为 1。
+# 目前仅支持单选题、判断题、多选题(选项<5)和随机题目，暂不支持简答题和其他题目。
+# _API="https://spark-api-open.xf-yun.com/v1" # AI 答题 API 接口
+# _KEY="nxetovst4bY1v0hUIk8L:NxYXC44THZHkVUmWLLGb" # API 密钥（此为示例，无法使用）
+# _MODEL="lite" # 模型名
+# _Qps=2 # 可选，每秒查询次数，默认为 1。
 
 # 可选，设置代理（仅用于 AI 和 axios，浏览器不受影响）
-#_PROXY_HOST=127.0.0.1
-#_PROXY_PORT=8080
+# _PROXY_HOST=127.0.0.1
+# _PROXY_PORT=8080
 ```
 
 #### 运行程序
