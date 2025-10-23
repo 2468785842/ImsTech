@@ -61,8 +61,7 @@ class ErrorWithRetry {
     
     for (let i = 0; i < this.maxCnt; i++) {
       try {
-        // 等待任务完成（同步和异步都支持）
-        await Promise.resolve(task());
+        await task();
         console.log(`任务: ${this.taskName} 执行成功`);
         return; // 成功则退出
       } catch (e) {

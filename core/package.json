@@ -2,16 +2,19 @@
   "name": "@ims-tech-auto/core",
   "version": "1.0.0",
   "description": "this is imstech auto control script",
-  "main": "./dist/src/index.js",
-  "type": "module",
-  "scripts": {
-    "start": "tsc && dotenv -e ../.env node dist/src/index.js"
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./*": "./dist/src/*"
   },
+  "type": "module",
   "author": "lidong",
   "license": "MIT",
   "overrides": {
     "whatwg-url": "^13.0.0"
   },
+  "files": [
+    "dist/src"
+  ],
   "devDependencies": {
     "@playwright/test": "^1.48.1",
     "@types/progress": "^2.0.7",

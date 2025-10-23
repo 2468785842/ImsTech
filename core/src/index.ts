@@ -185,34 +185,4 @@ async function init(page: Page) {
   console.log('执行完毕!!');
 }
 
-const arg = process.argv[1];
-
-if (arg && import.meta.url === pathToFileURL(arg).href) {
-  (async () => {
-    let browser: Browser | undefined;
-    try {
-      await AIModel.init(true);
-
-      const { headless } = Config.browser;
-
-      browser = await chromium.use(StealthPlugin()).launch({
-        executablePath: process.env._CHROME_DEV!,
-        headless,
-        slowMo: 0, // 不使用 Playwright 的 slowMo，我们使用自己的延迟机制
-        timeout: 1000 * 60 * 2,
-        ignoreDefaultArgs: headless ? ['--headless=old'] : [],
-        args: headless ? ['--headless=new'] : [],
-      });
-
-      const page = await login(browser);
-      await init(page);
-    } catch (error) {
-      console.error('程序启动失败:', error);
-    } finally {
-      await browser?.close();
-      exit();
-    }
-  })();
-}
-
 export { init, Config, login };

@@ -1,4 +1,4 @@
-### 国开自动刷课程序 (基于 Node.js 和 Playwright)
+### 国开自动刷课程序 (基于 Node.js Electron 和 Playwright)
 
 ### 可直接下载并使用 Electron 打包版
 点击以下链接下载可执行安装程序：
@@ -7,8 +7,7 @@
 ### 或者从源码运行
 
 #### 准备工作
-1. 安装 [Chrome Dev](https://www.google.com/intl/zh-CN/chrome/dev/)（如果已安装 Chrome，可以跳过）
-2. 安装 [Node.js](https://nodejs.org/zh-cn)
+1. 安装 [Node.js](https://nodejs.org/zh-cn)
 
 #### 配置
 1. 在项目的根目录创建一个 `.env` 文件，并添加以下内容：
@@ -16,7 +15,6 @@
 _ACCOUNT="xxx" # 你的账号
 _PASSWORD="xxx" # 你的密码
 
-_CHROME_DEV="C:\Program Files\Google\Chrome Dev\Application\chrome.exe" # Chrome Dev 安装路径，或使用你自己的 Chrome 安装路径
 _SLOW_MO=6000 # 可选，执行间隔，默认为1000ms。调整此值可以避免被检测为异常行为。
 _SLOW_MO_MIN=6000 # 可选，最小执行间隔（毫秒）
 _SLOW_MO_MAX=10000 # 可选，最大执行间隔（毫秒）
@@ -50,29 +48,20 @@ _Qps=2 # 可选，每秒查询次数，默认为 1。
    yarn config set registry https://registry.npmmirror.com
    ```
 
-3. 进入 `core` 目录：
-   ```bash
-   cd core
-   ```
-
-4. 安装依赖库：
+3. 安装依赖库：
    ```bash
    yarn install
    ```
 
-5. 启动程序：
+4. 启动程序：
    ```bash
-   yarn start
+   yarn start:electron
    ```
 
 #### 注意事项
 - **操作浏览器时：**
-  - 登录时需要手动处理人机验证。
+  - 登录时可能需要手动处理人机验证。
   - 登录完成后，尽量不要操作浏览器，以免发生错误。
-  
-- **浏览器兼容性：**
-  - **Firefox**：浏览器置于后台时暂停加载，且每次登录需要重新输入。
-  - **Webkit 和 Chromium**：无已知问题。
 
 #### 代码风格
 - 使用 Prettier 格式化代码。提交前请确保代码已格式化。可以使用以下命令格式化：
@@ -90,17 +79,6 @@ $ELECTRON_CUSTOM_DIR="v{{ version }}"
 ```
 
 #### 打包成可执行文件
-- 在根目录执行命令
-- 安装依赖:
-  ```bash
-  yarn install
-  ```
-
-- 启动 Electron：
-  ```bash
-  yarn start:electron
-  ```
-
 - 打包应用：
   ```bash
   yarn build:electron

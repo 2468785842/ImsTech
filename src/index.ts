@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import { Config, init, login } from '@ims-tech-auto/core';
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import AIModel from '@ims-tech-auto/core/ai/AIModel.js';
 
 {
   const { appendSwitch } = app.commandLine;
@@ -13,6 +14,7 @@ async function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 900,
+    show: !Config.browser.headless,
     webPreferences: {
       nodeIntegration: false, // 禁用 Node.js Integration
       contextIsolation: true, // 启用上下文隔离
@@ -22,15 +24,11 @@ async function createWindow() {
   // 加载应用的本地文件
   await mainWindow.loadURL(Config.urls.login());
 
-  mainWindow.webContents.on('did-finish-load', async () => {
-    console.log('Main window finished loading');
-  });
-
   mainWindow.webContents.on(
     'did-fail-load',
     (event, errorCode, errorDescription) => {
       console.error(
-        `Page failed to load: ${errorDescription} (Error code: ${errorCode})`,
+        `网页加载失败: ${errorDescription} (错误码: ${errorCode})`,
       );
     },
   );
@@ -44,16 +42,19 @@ async function connectToElectron() {
   // 连接到 Electron 的 CDP 端口
   const browser = await chromium
     .use(StealthPlugin())
-    .connectOverCDP('http://localhost:9222');
+    .connectOverCDP('http://localhost:9222', {
+        slowMo: 0, // 不使用 Playwright 的 slowMo，我们使用自己的延迟机制
+        timeout: 1000 * 60 * 2,
+    });
   // 获取浏览器页面
 
   // 在页面中执行操作
+  await AIModel.init(true);
+
   const page = await login(browser);
   await init(page);
 }
 
 app.whenReady().then(createWindow);
 
-app.on('window-all-closed', () => {
-  app.quit();
-});
+app.on('window-all-closed', app.quit);

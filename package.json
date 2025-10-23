@@ -26,7 +26,6 @@
   },
   "scripts": {
     "build": "tsc -b core && tsc",
-    "start": "yarn workspace @ims-tech-auto/core start",
     "start:electron": "yarn build && electron ./dist/src",
     "build:electron": "yarn build && electron-builder"
   },

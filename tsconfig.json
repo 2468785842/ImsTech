@@ -100,7 +100,8 @@
     "baseUrl": ".",
     "paths": {
       "*": ["./node_modules/*", "./src/*"],
-      "@ims-tech-auto/core": ["./core/src"]
+      "@ims-tech-auto/core": ["./core/src"],
+      "@ims-tech-auto/core/*": ["./core/src/*"]
     }
   },
   "exclude": ["./node_modules", "./dist", "./out"],
