@@ -6,7 +6,7 @@ interface ActivityInfo {
   semester: string;
   code: string;
   startDate: string;
-  percent: string;
+  percent: string | null;
 }
 
 async function getActivities(): Promise<ActivityInfo[]> {

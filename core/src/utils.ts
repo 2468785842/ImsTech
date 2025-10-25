@@ -102,26 +102,4 @@ function errorWithRetry(taskName: string, maxCnt: number) {
   return new ErrorWithRetry(taskName, maxCnt);
 }
 
-async function withRandomDelay<T>(page: Page, operation: () => T) {
-  try {
-    const delay = Config.browser.slowMo();
-    await page.waitForTimeout(delay);
-    return operation();
-  } catch (error: any) {
-    if (
-      error.message?.includes('Target page, context or browser has been closed')
-    ) {
-      console.log('页面已关闭，跳过延迟操作');
-      return operation();
-    }
-    throw error;
-  }
-}
-
-export {
-  input,
-  waitForSPALoaded,
-  parseDOMText,
-  errorWithRetry,
-  withRandomDelay,
-};
+export { input, waitForSPALoaded, parseDOMText, errorWithRetry };

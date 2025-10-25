@@ -8,16 +8,24 @@ import Config, { API_BASE_URL, printConfigStatus } from './config.js';
 import * as Processor from './course/processor.js';
 import * as Search from './course/search.js';
 import { filterCookies, login, storeCookies } from './login.js';
-import {
-  errorWithRetry,
-  input,
-  waitForSPALoaded,
-  withRandomDelay,
-} from './utils.js';
+import { errorWithRetry, input, waitForSPALoaded } from './utils.js';
 
 import { exit } from 'process';
 
 async function init(page: Page) {
+  if (
+    (await page
+      .getByText(
+        '您好，您的账号被检测到异常访问行为，您的账号将被禁止访问教学平台，时限1小时。',
+      )
+      .count()) != 0
+  ) {
+    console.error(
+      chalk.bgRed('抱歉，程序触发了网站的风控系统,目前你已经被禁止访问'),
+    );
+    exit(1);
+  }
+
   printConfigStatus();
   // https://lms.ouchn.cn/user/index 返回会携带 WAF Cookie
   const cs = await page.evaluate(
@@ -61,6 +69,7 @@ async function init(page: Page) {
   for (let item of num == 0 ? listItems : [listItems[num - 1]]) {
     console.log('-'.repeat(60));
     console.log(item.title, item.percent);
+    if (!item.percent) continue;
 
     let courses: Search.CourseInfo[] = [];
     // 考试需要特殊处理
@@ -132,7 +141,11 @@ async function init(page: Page) {
        * 此时网页内自测考试已经被隐藏，导致寻找不到元素后整个脚本崩溃
        * ignore error for catch()
        */
-      await withRandomDelay(page, () => t.click().catch());
+      try {
+        await t.click();
+      } catch {
+        continue;
+      }
       await page.waitForURL(RegExp(`^${Config.urls.course()}.*`), {
         timeout: 30000,
         waitUntil: 'domcontentloaded',
@@ -143,9 +156,7 @@ async function init(page: Page) {
         5,
       )
         .retry(async () => {
-          await withRandomDelay(page, () =>
-            page.reload({ timeout: 1000 * 60 }),
-          );
+          await page.reload({ timeout: 1000 * 60 });
         })
         .failed((e) => {
           throw `程序执行出错: ${e}`;
@@ -156,27 +167,21 @@ async function init(page: Page) {
         });
 
       // 回到课程选择页
-      await withRandomDelay(page, () =>
-        page.goBack({
-          timeout: 0,
-          waitUntil: 'domcontentloaded',
-        }),
-      );
-
-      await withRandomDelay(page, () =>
-        page.reload({
-          timeout: 10000,
-          waitUntil: 'domcontentloaded',
-        }),
-      );
-    }
-
-    await withRandomDelay(page, () =>
-      page.goBack({
+      await page.goBack({
         timeout: 0,
         waitUntil: 'domcontentloaded',
-      }),
-    );
+      });
+
+      await page.reload({
+        timeout: 10000,
+        waitUntil: 'domcontentloaded',
+      });
+    }
+
+    await page.goBack({
+      timeout: 0,
+      waitUntil: 'domcontentloaded',
+    });
   }
   console.log('执行完毕!!');
 }

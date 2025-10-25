@@ -206,6 +206,10 @@ export default class OnlineVideoProc implements Processor {
       if (preCur != cur) {
         prcsBar.tick(
           this.timeStringToNumber(cur) - this.timeStringToNumber(preCur),
+          {
+            tcur: cur,
+            tend: end,
+          },
         );
         preCur = cur;
       }
@@ -247,21 +251,17 @@ export default class OnlineVideoProc implements Processor {
   }
 
   private createProgress(cur: number, end: number) {
-    const bar = new ProgressBar('正在播放 [:bar] :percent :current/:total(s)', {
+    const bar = new ProgressBar('正在播放 [:bar] :percent :tcur/:tend', {
       head: '>',
       incomplete: ' ',
       total: end,
       width: 30,
       clear: true,
     });
-    bar.render((tokens: any) => {
-      const elapsed = this.timeNumberToString(tokens.current);
-      const total = this.timeNumberToString(tokens.total);
-      process.stdout.write(
-        `\r播放中 [${tokens.bar}] ${tokens.percent}% ${elapsed} / ${total}`,
-      );
+    bar.tick(cur, {
+      tcur: this.timeNumberToString(cur),
+      tend: this.timeNumberToString(end),
     });
-    bar.tick(cur);
     return bar;
   }
 

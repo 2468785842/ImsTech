@@ -3,6 +3,13 @@ import { Config, init, login } from '@ims-tech-auto/core';
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AIModel from '@ims-tech-auto/core/ai/AIModel.js';
+import HumanBehaviorPlugin from '@ims-tech-auto/core/plugins/HumanBehaviorPlugin.js';
+
+import { fileURLToPath } from 'url';
+import path, { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.join(dirname(__filename), '..', '..');
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -33,11 +40,11 @@ async function createWindow() {
     webPreferences: {
       nodeIntegration: false, // 禁用 Node.js Integration
       contextIsolation: true, // 启用上下文隔离
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  // 加载应用的本地文件
-  await mainWindow.loadURL(Config.urls.login());
+  await mainWindow.loadFile(path.join(__dirname, '/index.html'));
 
   mainWindow.webContents.on(
     'did-fail-load',
@@ -56,13 +63,16 @@ async function connectToElectron() {
   // 连接到 Electron 的 CDP 端口
   const browser = await chromium
     .use(StealthPlugin())
+    .use(HumanBehaviorPlugin())
     .connectOverCDP('http://localhost:9222', {
-      slowMo: 0, // 不使用 Playwright 的 slowMo，我们使用自己的延迟机制
+      slowMo: 1000,
       timeout: 1000 * 60 * 2,
+      headers: {
+        Accept: 'application/json',
+        Connection: 'keep-alive',
+      },
     });
-  // 获取浏览器页面
 
-  // 在页面中执行操作
   await AIModel.init(true);
 
   const page = await login(browser);
