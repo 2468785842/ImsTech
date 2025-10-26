@@ -1,10 +1,7 @@
 import { expect } from '@playwright/test';
 import { Page } from 'playwright';
-
 import ProgressBar from 'progress';
-
 import { CourseType, Processor } from '../processor.js';
-
 import { waitForSPALoaded } from '../../utils.js';
 import Config from '../../config.js';
 
@@ -12,246 +9,215 @@ export default class OnlineVideoProc implements Processor {
   name: CourseType = 'online_video';
 
   async exec(page: Page) {
-    let checkVideoStatusTimer: any = null;
-    const tryToShowControls = async () => {
-      const playControls = page.locator('div.mvp-replay-player-all-controls');
-      await playControls.evaluate(
-        (element) => {
-          element.classList.remove('mvp-replay-player-hidden-control');
-        },
-        {},
-        { timeout: 1000 * 60 },
-      );
-    };
-
     await waitForSPALoaded(page);
 
-    await page.waitForTimeout(3000);
-
-    let mediaType: 'video' | 'audio' | '' = '';
-
-    if (await page.locator('video').count()) {
-      mediaType = 'video';
-      await tryToShowControls();
-    } else if (await page.locator('audio').count()) {
-      mediaType = 'audio';
-    } else {
-      console.log('未知原因加载失败: 跳过');
+    const mediaType = await this.detectMediaType(page);
+    if (!mediaType) {
+      console.warn('❌ 未检测到音视频元素，跳过');
       return;
     }
 
-    console.log('mediaType', mediaType);
+    console.log('✅ 检测到媒体类型:', mediaType);
 
-    await page.evaluate(
-      `document.getElementsByTagName("${mediaType}")[0].playbackRate = ${Config.playRate}`,
-    );
+    await this.setPlaybackRate(page, mediaType);
+    const [start, end] = await this.getMediaTime(page, mediaType);
 
-    const getMeidaTime = async () => {
-      let start: string, end: string;
-      if (mediaType === 'video') {
-        const display = page.locator('div.mvp-time-display');
-        [start, end] = (await display.textContent())!.split('/');
-      } else {
-        start = (await page.locator('.current-time').textContent())!;
-        end = (await page.locator('.duration').textContent())!;
-      }
-      return [start.trim(), end.trim()];
-    };
+    if (start === end && end !== '00:00') return;
 
-    const [start, end] = await getMeidaTime();
-
-    console.log('play progress: ', start, end);
-
-    // check media play over?
-    if (start == end && end != '00:00') {
-      return;
-    }
-
-    if (mediaType === 'video') {
-      await tryToShowControls();
-
-      // 静音 mvp-fonts mvp-fonts-volume-on
-      const ctlVol = page.locator('button.mvp-volume-control-btn');
-      if (await ctlVol.locator('i.mvp-fonts-volume-on').isVisible()) {
-        await ctlVol.click();
-        console.log('volume off');
-      }
-
-      try {
-        await page.locator('.mvp-player-quality-menu').hover({ timeout: 500 });
-        // 改变视频画质省流
-        await page.getByText('480p').click({ timeout: 500 });
-        console.log('change quality to 480p');
-      } catch {
-        console.warn('no have quality menu', 'skip');
-      }
-
-      // 点击播放
-      const p = page.locator('.mvp-toggle-play.mvp-first-btn-margin');
-      await expect(p).toBeVisible({ timeout: 500 });
-      await p.click();
-    } else {
-      await page.locator('.play').click();
-      await page.locator('.volume').click();
-    }
-
-    const prcsBar = this.createProgress(
+    await this.preparePlayback(page, mediaType);
+    const totalSeconds = this.timeStringToNumber(end);
+    const progress = this.createProgress(
       this.timeStringToNumber(start),
-      this.timeStringToNumber(end),
+      totalSeconds,
     );
 
-    let onCur: any = 0;
-    //检测视频是否卡住
-    const checkVideoPlayStatusFunc = () => {
-      let saveCur = onCur;
+    // 启动视频状态监控与进度条更新
+    const cleanupFns = [
+      this.monitorPlayback(page),
+      this.trackProgress(page, progress, mediaType, end),
+    ];
+
+    // 等待播放结束
+    await this.waitForPlaybackEnd(page, mediaType);
+
+    // 清理
+    cleanupFns.forEach((fn) => fn());
+    console.log('✅ 播放完毕');
+  }
+
+  // -------------------------------
+  // 🧩 工具方法区域
+  // -------------------------------
+
+  private async detectMediaType(page: Page): Promise<'video' | 'audio' | ''> {
+    if (await page.locator('video').count()) {
+      await this.showVideoControls(page);
+      return 'video';
+    }
+    if (await page.locator('audio').count()) {
+      return 'audio';
+    }
+    return '';
+  }
+
+  private async showVideoControls(page: Page) {
+    await page
+      .locator('div.mvp-replay-player-all-controls')
+      .evaluate((el) => el.classList.remove('mvp-replay-player-hidden-control'))
+      .catch(() => {});
+  }
+
+  private async setPlaybackRate(page: Page, mediaType: 'video' | 'audio') {
+    await page.evaluate(
+      ({ type, rate }) => {
+        const media = document.querySelector(type) as HTMLMediaElement;
+        if (media) media.playbackRate = rate;
+      },
+      { type: mediaType, rate: Config.playRate },
+    );
+  }
+
+  private async getMediaTime(
+    page: Page,
+    mediaType: 'video' | 'audio',
+  ): Promise<[string, string]> {
+    const [start, end] =
+      mediaType === 'video'
+        ? (await page.locator('div.mvp-time-display').textContent())!.split('/')
+        : [
+            (await page.locator('.current-time').textContent())!,
+            (await page.locator('.duration').textContent())!,
+          ];
+    return [start.trim(), end.trim()];
+  }
+
+  private async preparePlayback(page: Page, mediaType: 'video' | 'audio') {
+    if (mediaType === 'video') {
+      await this.showVideoControls(page);
+      await this.trySetVideoQuality(page);
+      await this.clickSafely(page, '.mvp-toggle-play.mvp-first-btn-margin');
+    } else {
+      await this.clickSafely(page, '.play');
+      await this.clickSafely(page, '.volume');
+    }
+  }
+
+  private async trySetVideoQuality(page: Page) {
+    try {
+      await page.locator('.mvp-player-quality-menu').hover({ timeout: 500 });
+      await page.getByText('480p').click({ timeout: 500 });
+      console.log('🎞️ 切换视频画质为 480p');
+    } catch {
+      console.warn('⚠️ 无法切换画质，跳过');
+    }
+  }
+
+  private async clickSafely(page: Page, selector: string) {
+    const el = page.locator(selector);
+    try {
+      await expect(el).toBeVisible({ timeout: 1000 });
+      await el.click();
+    } catch {
+      console.warn(`⚠️ 元素 ${selector} 不可点击`);
+    }
+  }
+
+  private monitorPlayback(page: Page) {
+    let lastCur = '';
+    const interval = setInterval(async () => {
       try {
-        clearTimeout(checkVideoStatusTimer);
-        checkVideoStatusTimer = setTimeout(async function () {
-          if (saveCur == onCur) {
-            //console.warn('Video playback may be stuck at:', saveCur);
-            let p = page.locator('.mvp-toggle-play.mvp-first-btn-margin');
-            //查找播放按钮元素，如果存在则目前为暂停状态，设置playStatus为false
-            let playStatus: any = false;
-            try {
-              playStatus = await page.evaluate(() =>
-                document.querySelector(
-                  '.mvp-toggle-play.mvp-first-btn-margin i.mvp-fonts.mvp-fonts-play',
-                ),
-              );
-            } catch (e) {
-              playStatus = true;
-            }
-            playStatus = !playStatus || playStatus == null ? true : false;
-            try {
-              if (playStatus == true) {
-                //console.log("目前为视频播放状态，执行暂停视频并重新开始播放");
-                p = page.locator('.mvp-toggle-play.mvp-first-btn-margin');
-                console.log(p);
-                try {
-                  await page.evaluate(() => {
-                    let btnC = document.querySelector(
-                      '.mvp-toggle-play.mvp-first-btn-margin',
-                    ) as HTMLElement;
-                    if (btnC) {
-                      btnC.click();
-                    }
-                  });
-                  await page.waitForTimeout(500);
-                  await page.evaluate(() => {
-                    let btnC = document.querySelector(
-                      '.mvp-toggle-play.mvp-first-btn-margin',
-                    ) as HTMLElement;
-                    if (btnC) {
-                      btnC.click();
-                    }
-                  });
-                } catch (clickError) {
-                  //console.log("点击操作超时，尝试重新定位元素");
-                  p = page.locator('.mvp-toggle-play.mvp-first-btn-margin');
-                  await p.click().catch(async () => {
-                    //console.log("重试点击也失败了，尝试刷新页面");
-                    if (page) {
-                      try {
-                        await page.reload({ timeout: 10000 });
-                        await page.waitForLoadState('domcontentloaded');
-                        //console.log("页面刷新完成");
-                        return checkVideoPlayStatusFunc();
-                      } catch (reloadError) {
-                        //console.log("页面刷新失败:", reloadError);
-                        return checkVideoPlayStatusFunc();
-                      }
-                    }
-                  });
-                }
-              } else {
-                p = page.locator('.mvp-toggle-play.mvp-first-btn-margin');
-                //console.log("目前为视频暂停状态，点击开始播放");
-                try {
-                  await page.evaluate(() => {
-                    let btnC = document.querySelector(
-                      '.mvp-toggle-play.mvp-first-btn-margin',
-                    ) as HTMLElement;
-                    if (btnC) {
-                      btnC.click();
-                    }
-                  });
-                } catch (clickError) {
-                  //console.log("点击操作超时");
-                  return checkVideoPlayStatusFunc();
-                }
-              }
-            } catch (e) {
-              //console.log("操作视频播放暂停失败:", e);
-              return checkVideoPlayStatusFunc();
-            }
-          } else {
-            //继续检测
-            //console.log("视频正在播放无需操作，继续检测");
-            return checkVideoPlayStatusFunc();
-          }
-          checkVideoPlayStatusFunc();
-        }, 10000);
-      } catch (e) {
-        checkVideoPlayStatusFunc();
+        const cur = await page.evaluate(() => {
+          const el =
+            document.querySelector('video') || document.querySelector('audio');
+          return el ? (el as HTMLMediaElement).currentTime : 0;
+        });
+
+        const curStr = String(cur);
+        if (curStr === lastCur) {
+          console.log('⚠️ 检测到播放可能卡住，尝试重启播放');
+          await this.restartPlayback(page);
+        }
+        lastCur = curStr;
+      } catch {
+        /* ignore */
       }
-    };
-    //执行视频播放状态检测
-    checkVideoPlayStatusFunc();
+    }, 2000);
 
-    let preCur = (await getMeidaTime())[0];
+    return () => clearInterval(interval);
+  }
 
-    const updatePrcsBar = async () => {
-      const cur = (await getMeidaTime())[0];
-      onCur = cur;
-      if (preCur != cur) {
-        prcsBar.tick(
-          this.timeStringToNumber(cur) - this.timeStringToNumber(preCur),
+  private async restartPlayback(page: Page) {
+    try {
+      await this.clickSafely(page, '.mvp-toggle-play.mvp-first-btn-margin');
+      await page.waitForTimeout(500);
+      await this.clickSafely(page, '.mvp-toggle-play.mvp-first-btn-margin');
+    } catch (e) {
+      console.warn('⚠️ 重启播放失败，尝试刷新');
+      try {
+        await page.reload({ timeout: 10000 });
+        await page.waitForLoadState('domcontentloaded');
+      } catch {
+        console.error('❌ 页面刷新失败');
+      }
+    }
+  }
+
+  private trackProgress(
+    page: Page,
+    progress: ProgressBar,
+    mediaType: 'video' | 'audio',
+    end: string,
+  ) {
+    let prev = '';
+    const interval = setInterval(async () => {
+      const [cur] = await this.getMediaTime(page, mediaType);
+      if (cur !== prev) {
+        progress.tick(
+          this.timeStringToNumber(cur) -
+            this.timeStringToNumber(prev || '00:00'),
           {
             tcur: cur,
             tend: end,
           },
         );
-        preCur = cur;
+        prev = cur;
       }
-    };
+    }, 1000);
 
-    const timer = setInterval(updatePrcsBar, 1000);
+    return () => clearInterval(interval);
+  }
 
-    //一直等待直到视频播放完毕
+  private async waitForPlaybackEnd(page: Page, mediaType: 'video' | 'audio') {
     await page.waitForFunction(
-      ({ date, mediaType }) => {
-        let cur: string, end: string;
-        // 此为浏览器环境
+      ({ start, mediaType }) => {
+        let cur = '';
+        let end = '';
         if (mediaType === 'video') {
           const display = document.querySelector(
             'div.mvp-time-display',
           ) as HTMLElement;
-          // start duration / end duration
-          // example: 23:11 / 36:11
-          [cur, end] = display.textContent!.split('/');
+          [cur, end] = display?.textContent?.split('/') ?? ['', ''];
         } else {
-          cur = (document.querySelector('.current-time') as HTMLElement)
-            .textContent!;
-          end = (document.querySelector('.duration') as HTMLElement)
-            .textContent!;
+          cur =
+            (document.querySelector('.current-time') as HTMLElement)
+              ?.textContent ?? '';
+          end =
+            (document.querySelector('.duration') as HTMLElement)?.textContent ??
+            '';
         }
-        cur = cur.trim();
-        end = end.trim();
-        if (Date.now() - date > 15000 && (cur == '00:00' || cur == ''))
-          throw '播放媒体文件错误(等待超时)';
-        return cur === end;
+        return cur.trim() === end.trim() && cur.trim() !== '';
       },
-      { date: Date.now(), mediaType },
+      { start: Date.now(), mediaType },
       { timeout: 0, polling: 1000 },
     );
-
-    clearInterval(timer);
-    clearTimeout(checkVideoStatusTimer); //删除视频播放状态检测计时器
-    updatePrcsBar();
   }
 
+  // -------------------------------
+  // ⏱️ 时间处理 + 进度条
+  // -------------------------------
+
   private createProgress(cur: number, end: number) {
-    const bar = new ProgressBar('正在播放 [:bar] :percent :tcur/:tend', {
+    const bar = new ProgressBar('🎬 正在播放 [:bar] :percent :tcur/:tend', {
       head: '>',
       incomplete: ' ',
       total: end,
@@ -265,7 +231,7 @@ export default class OnlineVideoProc implements Processor {
     return bar;
   }
 
-  private timeNumberToString(sec: number) {
+  private timeNumberToString(sec: number): string {
     const h = Math.floor(sec / 3600)
       .toString()
       .padStart(2, '0');
@@ -278,33 +244,10 @@ export default class OnlineVideoProc implements Processor {
     return `${h}:${m}:${s}`;
   }
 
-  private timeStringToNumber(timeString: string): number {
-    const parts = timeString.split(':').map(Number);
-
-    if (parts.some((part) => isNaN(part) || part < 0)) {
-      throw new Error(
-        'Invalid time values. Each part must be a non-negative number.',
-      );
-    }
-
-    let hours = 0,
-      minutes = 0,
-      seconds = 0;
-
-    if (parts.length === 3) {
-      [hours, minutes, seconds] = parts;
-    } else if (parts.length === 2) {
-      [minutes, seconds] = parts;
-    } else if (parts.length === 1) {
-      [seconds] = parts;
-    } else {
-      throw new Error('Invalid time format. Use HH:MM:SS, MM:SS, or SS.');
-    }
-
-    if (minutes >= 60 || seconds >= 60) {
-      throw new Error('Minutes and seconds should be less than 60.');
-    }
-
-    return hours * 3600 + minutes * 60 + seconds;
+  private timeStringToNumber(time: string): number {
+    const parts = time.split(':').map(Number);
+    if (parts.some((n) => isNaN(n) || n < 0)) return 0;
+    const [h, m, s] = [0, 0, 0, ...parts].slice(-3);
+    return h * 3600 + m * 60 + s;
   }
 }

@@ -1,12 +1,15 @@
-import { app, BrowserWindow } from 'electron';
-import { Config, init, login } from '@ims-tech-auto/core';
-import { chromium } from 'playwright-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import AIModel from '@ims-tech-auto/core/ai/AIModel.js';
-import HumanBehaviorPlugin from '@ims-tech-auto/core/plugins/HumanBehaviorPlugin.js';
-
 import { fileURLToPath } from 'url';
 import path, { dirname } from 'path';
+
+import { app, BrowserWindow } from 'electron';
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+import { IMSRunner } from '@ims-tech-auto/core';
+import AIModel from '@ims-tech-auto/core/ai/AIModel.js';
+import HumanBehaviorPlugin from '@ims-tech-auto/core/plugins/HumanBehaviorPlugin.js';
+import Config from '@ims-tech-auto/core/config.js';
+import { login } from '@ims-tech-auto/core/login.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.join(dirname(__filename), '..', '..');
@@ -46,12 +49,7 @@ async function createWindow() {
 
   await mainWindow.loadFile(path.join(__dirname, '/index.html'));
 
-  mainWindow.webContents.on(
-    'did-fail-load',
-    (event, errorCode, errorDescription) => {
-      console.error(`网页加载失败: ${errorDescription} (错误码: ${errorCode})`);
-    },
-  );
+  mainWindow.webContents.setAudioMuted(true);
 
   // 使用 Playwright 连接窗口，示例连接到CDP端口（确保 Electron 打开时调试端口暴露）
   await connectToElectron().catch((err) => {
@@ -65,7 +63,7 @@ async function connectToElectron() {
     .use(StealthPlugin())
     .use(HumanBehaviorPlugin())
     .connectOverCDP('http://localhost:9222', {
-      slowMo: 1000,
+      slowMo: 50,
       timeout: 1000 * 60 * 2,
       headers: {
         Accept: 'application/json',
@@ -74,12 +72,13 @@ async function connectToElectron() {
     });
 
   await AIModel.init(true);
-
   const page = await login(browser);
-  await init(page);
+  await IMSRunner.getInstance().run(page);
   app.exit();
 }
 
 app.whenReady().then(createWindow);
 
-app.on('window-all-closed', app.quit);
+app.on('window-all-closed', async () => {
+  app.quit();
+});

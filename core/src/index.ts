@@ -1,189 +1,213 @@
 import 'source-map-support/register.js';
-
 import chalk from 'chalk';
-import { Page } from 'playwright-core';
+import { Locator, Page } from 'playwright-core';
 import { format } from 'util';
-import * as Activity from './activity.js';
+import { exit } from 'process';
+
 import Config, { API_BASE_URL, printConfigStatus } from './config.js';
+import * as Activity from './activity.js';
 import * as Processor from './course/processor.js';
 import * as Search from './course/search.js';
 import { filterCookies, login, storeCookies } from './login.js';
 import { errorWithRetry, input, waitForSPALoaded } from './utils.js';
 
-import { exit } from 'process';
+export class IMSRunner {
+  private static _instance: IMSRunner;
+  private constructor() {}
 
-async function init(page: Page) {
-  if (
-    (await page
-      .getByText(
-        '您好，您的账号被检测到异常访问行为，您的账号将被禁止访问教学平台，时限1小时。',
-      )
-      .count()) != 0
-  ) {
-    console.error(
-      chalk.bgRed('抱歉，程序触发了网站的风控系统,目前你已经被禁止访问'),
+  static getInstance() {
+    if (!IMSRunner._instance) {
+      IMSRunner._instance = new IMSRunner();
+    }
+    return IMSRunner._instance;
+  }
+
+  // 主入口
+  async run(page: Page) {
+    // page.on('response', async (response) => {
+    //   (await response.body()).
+    //   const url = response.url();
+    //   if (url.includes('forbidden') || url.includes('banned')) {
+    //     console.log(chalk.red('⚠️ 发现风控响应:'), url);
+    //     await page.screenshot({ path: 'banned.png' });
+    //     exit(1);
+    //   }
+    // });
+
+    await this.checkRiskStatus(page);
+    await this.initSession(page);
+
+    const listItems = await Activity.getActivities();
+    const selected = await this.selectCourseGroup(listItems);
+
+    for (const item of selected) {
+      console.log(chalk.bold('-'.repeat(60)));
+      console.log(chalk.cyan(`开始执行课程组: ${item.title}`));
+      await this.processCourseGroup(page, item);
+    }
+
+    console.log(chalk.greenBright('🎉 全部课程执行完毕!'));
+  }
+
+  // 检查风控状态
+  private async checkRiskStatus(page: Page): Promise<boolean> {
+    const blockedText =
+      '您好，您的账号被检测到异常访问行为，您的账号将被禁止访问教学平台，时限1小时。';
+    
+    // 检查页面中是否包含风控提示
+    const count = await page.getByText(blockedText, { exact: false }).count();
+
+    if (count > 0) {
+      console.error(chalk.bgRed(`⚠️ 检测到风控提示，账号可能已被封禁1小时`));
+      await page.screenshot({ path: 'risk_detected.png', fullPage: true });
+      return true;
+    }
+
+    return false;
+  }
+
+  // 初始化会话 cookie
+  private async initSession(page: Page) {
+    const cs = await page.evaluate(
+      async () => await (window as any).cookieStore.getAll(),
     );
-    exit(1);
+
+    await storeCookies(
+      filterCookies(cs, ['session']).map((cookie) => ({
+        ...cookie,
+        domain: API_BASE_URL.replace(/^https:\/\//, ''),
+      })),
+    );
   }
 
-  printConfigStatus();
-  // https://lms.ouchn.cn/user/index 返回会携带 WAF Cookie
-  const cs = await page.evaluate(
-    async () => await (window as any).cookieStore.getAll(),
-  );
+  // 用户选择课程组
+  private async selectCourseGroup(listItems: any[]) {
+    console.log(chalk.bold('\n可选课程组:'));
+    console.log(chalk.gray(`0. 全部课程`));
 
-  // session; 会话Token
-  await storeCookies(
-    filterCookies(cs, ['session']).map((cookie) => ({
-      ...cookie,
-      domain: API_BASE_URL.substring('https://'.length),
-    })),
-  );
+    listItems.forEach((item, i) =>
+      console.log(`${i + 1}. ${item.title}  ${item.percent ?? ''}`),
+    );
 
-  const listItems = await Activity.getActivities();
+    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(0), 20000));
+    const userInput = await Promise.race([
+      input('请输入序号选择课程组(20秒后自动选择全部): '),
+      timeoutPromise,
+    ]);
 
-  console.log('课程组数量: ', listItems.length);
-  console.log(`0. 全部课程`);
+    const num = Number(userInput);
+    if (isNaN(num)) {
+      console.error(chalk.red('❌ 请输入数字'));
+      exit(1);
+    }
 
-  for (let i = 1; i <= listItems.length; i++) {
-    console.log(`${i}. ${listItems[i - 1].title}`);
+    return num === 0 ? listItems : [listItems[num - 1]];
   }
 
-  let num: number = -1;
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(0);
-      console.log();
-    }, 20000);
-  });
-
-  const userInputPromise = input(
-    '选择一项课程完成(输入序号),20秒后自动选择`0`:',
-  );
-  num = Number(await Promise.race([userInputPromise, timeoutPromise]));
-  if (isNaN(num)) {
-    console.error('请输入数字');
-    exit();
-  }
-
-  for (let item of num == 0 ? listItems : [listItems[num - 1]]) {
-    console.log('-'.repeat(60));
-    console.log(item.title, item.percent);
-    if (!item.percent) continue;
-
-    let courses: Search.CourseInfo[] = [];
-    // 考试需要特殊处理
+  // 执行课程组
+  private async processCourseGroup(page: Page, item: any) {
     try {
-      courses = (await Search.getUncompletedCourses(page, item)).filter(
+      const courses = (await Search.getUncompletedCourses(page, item)).filter(
         (course) => course.progress != 'full' || course.type == 'exam',
       );
-      // 使“未完成”取消勾选，防止已完成测试阻塞执行
+
+      // 防止复选框影响
       await page.locator('input[type="checkbox"]').setChecked(false);
+
+      for (const [i, course] of courses.entries()) {
+        await this.processSingleCourse(page, course, i + 1, courses.length);
+      }
+
+      await this.goBackToCourseList(page);
     } catch (e: any) {
-      console.log(`[${item.title}]课程异常，跳过: ${e.message ?? e}`);
-      if (num == 0) {
-        continue;
-      }
-      //非全部课程停止执行并重新发送课程菜单
-      await page.goBack({
-        timeout: 0,
-        waitUntil: 'domcontentloaded',
-      });
-      return init(page);
-    }
-
-    for (const [i, course] of courses.entries()) {
-      console.log(
-        chalk.bgBlueBright(
-          format(
-            '%s %s %s %s : %d/%d',
-            course.moduleName,
-            course.syllabusName ?? '',
-            course.activityName,
-            course.progress,
-            i + 1,
-            courses.length,
-          ),
-        ),
+      console.error(
+        chalk.red(`[${item.title}] 课程组执行异常: ${e.message ?? e}`),
       );
+    }
+  }
 
-      const processor = Processor.getProcessor(course.type);
-      if (!processor) {
-        console.warn('不支持的课程类型:', Processor.getCourseType(course.type));
-        continue;
-      }
+  // 执行单个课程
+  private async processSingleCourse(
+    page: Page,
+    course: any,
+    index: number,
+    total: number,
+  ) {
+    console.log(
+      chalk.bgBlueBright(
+        format(
+          '%s %s %s %s : %d/%d',
+          course.moduleName,
+          course.syllabusName ?? '',
+          course.activityName,
+          course.progress,
+          index,
+          total,
+        ),
+      ),
+    );
 
-      if (processor.condition && !(await processor.condition(course))) {
-        continue;
-      }
-
-      let tLoc = page.locator(`#${course.moduleId}`);
-      if (course.syllabusId) {
-        tLoc = tLoc.locator(`#${course.syllabusId}`);
-      }
-      const t = tLoc
-        .locator(`#learning-activity-${course.activityId}`)
-        .getByText(course.activityName, { exact: true });
-
-      if ((await t.getAttribute('class'))!.lastIndexOf('locked') != -1) {
-        console.log('课程锁定', '跳过');
-        continue;
-      }
-
-      if (await t.locator('xpath=../*[contains(@class, "upcoming")]').count()) {
-        console.log('课程未开始', '跳过');
-        continue;
-      }
-
-      /**
-       * 第二次打开脚本后, 默认勾选只显示未学内容
-       * 但已经完成的自测考试依然会来到这里执行点击操作
-       * 此时网页内自测考试已经被隐藏，导致寻找不到元素后整个脚本崩溃
-       * ignore error for catch()
-       */
-      try {
-        await t.click();
-      } catch {
-        continue;
-      }
-      await page.waitForURL(RegExp(`^${Config.urls.course()}.*`), {
-        timeout: 30000,
-        waitUntil: 'domcontentloaded',
-      });
-
-      await errorWithRetry(
-        `处理=>${Processor.getCourseType(processor.name)}<=课程`,
-        5,
-      )
-        .retry(async () => {
-          await page.reload({ timeout: 1000 * 60 });
-        })
-        .failed((e) => {
-          throw `程序执行出错: ${e}`;
-        })
-        .run(async () => {
-          await waitForSPALoaded(page);
-          await processor.exec(page);
-        });
-
-      // 回到课程选择页
-      await page.goBack({
-        timeout: 0,
-        waitUntil: 'domcontentloaded',
-      });
-
-      await page.reload({
-        timeout: 10000,
-        waitUntil: 'domcontentloaded',
-      });
+    const processor = Processor.getProcessor(course.type);
+    if (!processor) {
+      console.warn('⚠️ 不支持的课程类型:', Processor.getCourseType(course.type));
+      return;
     }
 
-    await page.goBack({
-      timeout: 0,
+    if (processor.condition && !(await processor.condition(course))) return;
+
+    const t = await this.getCourseLocator(page, course);
+
+    if (await this.isLockedOrUpcoming(t)) return;
+
+    try {
+      await t.click();
+    } catch {
+      return;
+    }
+
+    await page.waitForURL(RegExp(`^${Config.urls.course()}.*`), {
+      timeout: 30000,
       waitUntil: 'domcontentloaded',
     });
-  }
-  console.log('执行完毕!!');
-}
 
-export { init, Config, login };
+    await errorWithRetry(`处理课程: ${course.activityName}`, 3)
+      .retry(async () => {await page.reload({ timeout: 60000 })})
+      .failed((e) => {
+        throw `执行出错: ${e}`;
+      })
+      .run(async () => {
+        await waitForSPALoaded(page);
+        await processor.exec(page);
+      });
+
+    await this.goBackToCourseList(page);
+  }
+
+  // 课程定位
+  private async getCourseLocator(page: Page, course: any) {
+    let loc = page.locator(`#${course.moduleId}`);
+    if (course.syllabusId) loc = loc.locator(`#${course.syllabusId}`);
+    return loc
+      .locator(`#learning-activity-${course.activityId}`)
+      .getByText(course.activityName, { exact: true });
+  }
+
+  // 检查锁定/未开始
+  private async isLockedOrUpcoming(t: Locator) {
+    if ((await t.getAttribute('class'))?.includes('locked')) {
+      console.log('🔒 课程锁定，跳过');
+      return true;
+    }
+    if (await t.locator('xpath=../*[contains(@class, "upcoming")]').count()) {
+      console.log('⏳ 课程未开始，跳过');
+      return true;
+    }
+    return false;
+  }
+
+  // 返回上一级页面
+  private async goBackToCourseList(page: Page) {
+    await page.goBack({ waitUntil: 'domcontentloaded', timeout: 0 });
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 });
+  }
+}
