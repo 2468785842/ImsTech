@@ -1,29 +1,29 @@
 import 'source-map-support/register.js';
 import chalk from 'chalk';
-import { Locator, Page } from 'playwright-core';
+import { Browser, Locator, Page } from 'playwright-core';
 import { format } from 'util';
 import { exit } from 'process';
 
-import Config, { API_BASE_URL, printConfigStatus } from './config.js';
+import Config, { API_BASE_URL } from './config.js';
 import * as Activity from './activity.js';
 import * as Processor from './course/processor.js';
 import * as Search from './course/search.js';
-import { filterCookies, login, storeCookies } from './login.js';
+import { filterCookies, login, LoginConfig, storeCookies } from './login.js';
 import { errorWithRetry, input, waitForSPALoaded } from './utils.js';
+import { CourseInfo } from './course/search.js';
+import { ActivityInfo } from './activity.js';
 
-export class IMSRunner {
-  private static _instance: IMSRunner;
-  private constructor() {}
+class IMSRunner {
+  private page?: Page;
+  constructor() {}
 
-  static getInstance() {
-    if (!IMSRunner._instance) {
-      IMSRunner._instance = new IMSRunner();
-    }
-    return IMSRunner._instance;
+  async restart() {
+    if (this.page) await this.start(this.page);
   }
 
   // 主入口
-  async run(page: Page) {
+  async start(page: Page) {
+    this.page = page;
     // page.on('response', async (response) => {
     //   (await response.body()).
     //   const url = response.url();
@@ -43,6 +43,7 @@ export class IMSRunner {
     for (const item of selected) {
       console.log(chalk.bold('-'.repeat(60)));
       console.log(chalk.cyan(`开始执行课程组: ${item.title}`));
+      if (!item.percent) continue;
       await this.processCourseGroup(page, item);
     }
 
@@ -53,7 +54,7 @@ export class IMSRunner {
   private async checkRiskStatus(page: Page): Promise<boolean> {
     const blockedText =
       '您好，您的账号被检测到异常访问行为，您的账号将被禁止访问教学平台，时限1小时。';
-    
+
     // 检查页面中是否包含风控提示
     const count = await page.getByText(blockedText, { exact: false }).count();
 
@@ -81,7 +82,7 @@ export class IMSRunner {
   }
 
   // 用户选择课程组
-  private async selectCourseGroup(listItems: any[]) {
+  private async selectCourseGroup(listItems: ActivityInfo[]) {
     console.log(chalk.bold('\n可选课程组:'));
     console.log(chalk.gray(`0. 全部课程`));
 
@@ -89,7 +90,9 @@ export class IMSRunner {
       console.log(`${i + 1}. ${item.title}  ${item.percent ?? ''}`),
     );
 
-    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(0), 20000));
+    const timeoutPromise = new Promise((resolve) =>
+      setTimeout(() => resolve(0), 20000),
+    );
     const userInput = await Promise.race([
       input('请输入序号选择课程组(20秒后自动选择全部): '),
       timeoutPromise,
@@ -105,7 +108,7 @@ export class IMSRunner {
   }
 
   // 执行课程组
-  private async processCourseGroup(page: Page, item: any) {
+  private async processCourseGroup(page: Page, item: ActivityInfo) {
     try {
       const courses = (await Search.getUncompletedCourses(page, item)).filter(
         (course) => course.progress != 'full' || course.type == 'exam',
@@ -129,7 +132,7 @@ export class IMSRunner {
   // 执行单个课程
   private async processSingleCourse(
     page: Page,
-    course: any,
+    course: CourseInfo,
     index: number,
     total: number,
   ) {
@@ -149,7 +152,10 @@ export class IMSRunner {
 
     const processor = Processor.getProcessor(course.type);
     if (!processor) {
-      console.warn('⚠️ 不支持的课程类型:', Processor.getCourseType(course.type));
+      console.warn(
+        '⚠️ 不支持的课程类型:',
+        Processor.getCourseType(course.type),
+      );
       return;
     }
 
@@ -171,9 +177,11 @@ export class IMSRunner {
     });
 
     await errorWithRetry(`处理课程: ${course.activityName}`, 3)
-      .retry(async () => {await page.reload({ timeout: 60000 })})
+      .retry(async () => {
+        await page.reload({ timeout: 60000 });
+      })
       .failed((e) => {
-        throw `执行出错: ${e}`;
+        console.log(`执行出错: ${e}`);
       })
       .run(async () => {
         await waitForSPALoaded(page);
@@ -184,7 +192,7 @@ export class IMSRunner {
   }
 
   // 课程定位
-  private async getCourseLocator(page: Page, course: any) {
+  private async getCourseLocator(page: Page, course: CourseInfo) {
     let loc = page.locator(`#${course.moduleId}`);
     if (course.syllabusId) loc = loc.locator(`#${course.syllabusId}`);
     return loc
@@ -208,6 +216,19 @@ export class IMSRunner {
   // 返回上一级页面
   private async goBackToCourseList(page: Page) {
     await page.goBack({ waitUntil: 'domcontentloaded', timeout: 0 });
-    await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 });
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 5000 });
   }
 }
+
+export const ims = {
+  login(browser: Browser, config: LoginConfig) {
+    const runner = new IMSRunner();
+    return {
+      async start() {
+        return await runner
+          .start(await login(browser, config))
+          .catch(() => runner);
+      },
+    };
+  },
+};

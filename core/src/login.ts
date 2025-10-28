@@ -3,11 +3,16 @@ import { Browser, Cookie } from 'playwright';
 import * as fs from 'fs';
 import path from 'path';
 
-import Config from './config.js';
-
 const cookieFilename = path.join(process.cwd(), '.cookies.txt');
 
-async function login(browser: Browser) {
+interface LoginConfig {
+  account?: string;
+  password?: string;
+  loginApi: string;
+  homeApi: string;
+}
+
+async function login(browser: Browser, config: LoginConfig) {
   const context =
     browser.contexts().length == 0
       ? await browser.newContext()
@@ -27,33 +32,30 @@ async function login(browser: Browser) {
   const page =
     context.pages().length == 0 ? await context.newPage() : context.pages()[0];
 
-  await page.goto(Config.urls.home(), { timeout: 1000 * 60 * 10 });
+  await page.goto(config.homeApi, { timeout: 1000 * 60 * 10 });
 
-  if (!RegExp(`^${Config.urls.login()}`).test(page.url())) {
+  if (!RegExp(`^${config.loginApi}`).test(page.url())) {
     console.log('已经登陆');
     return page;
   }
 
   console.warn('需要登陆');
 
-  const { account, password } = Config.user;
+  const agree = page.locator('#agreeCheckBox').first();
+  await agree.setChecked(true);
+
+  const { account, password } = config;
 
   if (account && password) {
     await page.getByPlaceholder('请输入登录名').fill(account);
     await page.getByPlaceholder('请输入登录密码').fill(password);
+    await page.getByRole('button', { name: /^\s*登\s*录\s*$/ }).click();
   } else {
     console.warn('缺少账号或密码, 需要手动输入');
   }
 
-  const agree = page.locator('#agreeCheckBox').first();
-  await agree.setChecked(true);
-
-  if (account && password) {
-    await page.getByRole('button', { name: /^\s*登\s*录\s*$/ }).click();
-  }
-
-  // 等待跳转, timeout 可能被父级 page option覆盖呢..., 在这里显式声明好了
-  await page.waitForURL(Config.urls.home(), { timeout: 1000 * 60 * 5 });
+  // 等待跳转到主页
+  await page.waitForURL(config.homeApi, { timeout: 1000 * 60 * 5 });
 
   return page;
 }
@@ -98,4 +100,4 @@ function filterCookies(cookies: Array<Cookie>, names: string[]) {
   return cookies.filter((cookie) => names.includes(cookie.name));
 }
 
-export { filterCookies, login, restoreCookies, storeCookies };
+export { LoginConfig, filterCookies, login, restoreCookies, storeCookies };

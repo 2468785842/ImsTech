@@ -26,12 +26,11 @@ export default class ExamProc implements Processor {
   #totalScore: number = -1;
 
   // config
-  private gtScorePass = 100;
   private tryCount = 15;
 
   async condition(info: CourseInfo) {
     this.#courseInfo = info;
-    console.log(info.activityId);
+    console.log('id:', info.activityId);
     const exam = new Exam(info.activityId);
 
     if (!AIModel.instance) {

@@ -5,11 +5,10 @@ import { app, BrowserWindow } from 'electron';
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
-import { IMSRunner } from '@ims-tech-auto/core';
+import { ims } from '@ims-tech-auto/core';
 import AIModel from '@ims-tech-auto/core/ai/AIModel.js';
 import HumanBehaviorPlugin from '@ims-tech-auto/core/plugins/HumanBehaviorPlugin.js';
 import Config from '@ims-tech-auto/core/config.js';
-import { login } from '@ims-tech-auto/core/login.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.join(dirname(__filename), '..', '..');
@@ -63,7 +62,7 @@ async function connectToElectron() {
     .use(StealthPlugin())
     .use(HumanBehaviorPlugin())
     .connectOverCDP('http://localhost:9222', {
-      slowMo: 50,
+      slowMo: 240,
       timeout: 1000 * 60 * 2,
       headers: {
         Accept: 'application/json',
@@ -72,8 +71,17 @@ async function connectToElectron() {
     });
 
   await AIModel.init(true);
-  const page = await login(browser);
-  await IMSRunner.getInstance().run(page);
+
+  const runner = await ims
+    .login(browser, {
+      ...Config.user,
+      loginApi: Config.urls.login(),
+      homeApi: Config.urls.home(),
+    })
+    .start();
+
+  await runner?.restart();
+
   app.exit();
 }
 
